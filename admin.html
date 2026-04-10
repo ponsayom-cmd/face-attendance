@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Sarabun', sans-serif; background: var(--bg); color: #f8fafc; padding: 20px; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    .header { margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .stat-card { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid #334155; }
+    .stat-value { font-size: 24px; font-weight: 700; color: var(--primary); }
+    .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+    .menu-item { background: var(--card); padding: 25px; border-radius: 15px; text-decoration: none; color: white; border: 1px solid #334155; transition: 0.3s; display: flex; align-items: center; gap: 15px; }
+    .menu-item:hover { transform: translateY(-5px); border-color: var(--primary); background: #26334d; }
+    .icon { font-size: 30px; }
+    table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; margin-top: 20px; }
+    th, td { padding: 15px; text-align: left; border-bottom: 1px solid #334155; }
+    th { background: #0f172a; color: var(--primary); }
+    .badge-map { color: #38bdf8; text-decoration: none; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Dashboard ผู้ดูแลระบบ</h1>
+      <a href="index.html" style="color: #94a3b8; text-decoration: none;">← กลับหน้าหลัก</a>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card"><div>นักศึกษาทั้งหมด</div><div class="stat-value" id="count-std">-</div></div>
+      <div class="stat-card"><div>วิชาที่เปิดสอน</div><div class="stat-value" id="count-sub">-</div></div>
+      <div class="stat-card"><div>รายการเข้าเรียนวันนี้</div><div class="stat-value" id="count-att">-</div></div>
+    </div>
+
+    <div class="menu-grid">
+      <a href="manage_students.html" class="menu-item"><span class="icon">👥</span><div><h3>จัดการนักศึกษา</h3><p>ลบ/แก้ไขข้อมูลใบหน้า</p></div></a>
+      <a href="manage_subjects.html" class="menu-item"><span class="icon">📚</span><div><h3>จัดการรายวิชา</h3><p>เพิ่มวิชาเรียน</p></div></a>
+      <a href="config.html" class="menu-item"><span class="icon">⚙️</span><div><h3>ตั้งค่าพิกัด</h3><p>ปรับจุดเช็คอิน GPS</p></div></a>
+    </div>
+
+    <h2 style="margin-top: 40px; margin-bottom: 15px;">รายงานการเข้าเรียนล่าสุด</h2>
+    <div style="overflow-x: auto;">
+      <table>
+        <thead>
+          <tr><th>ชื่อ-นามสกุล</th><th>วิชา</th><th>เวลา</th><th>วันที่</th><th>พิกัด</th></tr>
+        </thead>
+        <tbody id="report-table">
+          <tr><td colspan="5" style="text-align:center">กำลังโหลดข้อมูล...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const API_URL = localStorage.getItem('gasApiUrl');
+    
+    async function loadDashboard() {
+      if(!API_URL) return alert('กรุณาตั้งค่า API URL ก่อน');
+      try {
+        const [att, std, sub] = await Promise.all([
+          fetch(`${API_URL}?action=getAttendanceReport`).then(r => r.json()),
+          fetch(`${API_URL}?action=getStudents`).then(r => r.json()),
+          fetch(`${API_URL}?action=getSubjects`).then(r => r.json())
+        ]);
+
+        document.getElementById('count-std').innerText = std.length;
+        document.getElementById('count-sub').innerText = sub.length;
+        document.getElementById('count-att').innerText = att.filter(a => a.วันที่ === new Date().toISOString().split('T')[0]).length;
+
+        const table = document.getElementById('report-table');
+        table.innerHTML = att.slice(0, 10).map(row => `
+          <tr>
+            <td>${row['ชื่อ-นามสกุล']}</td>
+            <td>${row['วิชา']}</td>
+            <td>${row['เวลา']}</td>
+            <td>${row['วันที่']}</td>
+            <td><a class="badge-map" href="${row['แผนที่']}" target="_blank">📍 ดูแผนที่</a></td>
+          </tr>
+        `).join('') || '<tr><td colspan="5" style="text-align:center">ยังไม่มีข้อมูล</td></tr>';
+      } catch(e) { console.error(e); }
+    }
+    loadDashboard();
+  </script>
+</body>
+</html>
