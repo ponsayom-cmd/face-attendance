@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>รายงานสถิติการเข้าเรียน</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; --accent: #10b981; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background: var(--bg);
+      color: #f8fafc;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    .container { max-width: 1000px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+    .btn-back { color: #94a3b8; text-decoration: none; font-size: 14px; padding: 8px 16px; border-radius: 8px; border: 1px solid #334155; transition: 0.3s; }
+    .btn-back:hover { background: #334155; color: white; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+    .chart-card { background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid #334155; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    .chart-card h3 { font-size: 18px; margin-bottom: 20px; text-align: center; color: #94a3b8; }
+    
+    .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px; }
+    .stat-item { background: var(--card); padding: 20px; border-radius: 16px; text-align: center; border-left: 4px solid var(--primary); }
+    .stat-item span { display: block; font-size: 14px; color: #94a3b8; }
+    .stat-item strong { font-size: 24px; color: white; }
+
+    canvas { max-width: 100% !important; height: auto !important; }
+
+    @media (max-width: 600px) {
+      .header h1 { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div>
+      <h1>วิเคราะห์ข้อมูลการเข้าเรียน</h1>
+      <p style="color: #94a3b8; font-size: 14px;">สรุปผลในรูปแบบแผนภูมิ</p>
+    </div>
+    <a href="index.html" class="btn-back">← กลับหน้าหลัก</a>
+  </div>
+
+  <!-- แผงตัวเลขสรุป -->
+  <div class="stats-row">
+    <div class="stat-item">
+      <span>จำนวนการเช็คชื่อทั้งหมด</span>
+      <strong id="totalLogs">0</strong>
+    </div>
+    <div class="stat-item" style="border-left-color: var(--accent);">
+      <span>จำนวนวิชาที่เปิด</span>
+      <strong id="totalSubjects">0</strong>
+    </div>
+    <div class="stat-item" style="border-left-color: #f59e0b;">
+      <span>จำนวนนักศึกษาในระบบ</span>
+      <strong id="totalStudents">0</strong>
+    </div>
+  </div>
+
+  <div class="grid">
+    <!-- กราฟวงกลม: สัดส่วนตามวิชา -->
+    <div class="chart-card">
+      <h3>สัดส่วนการเข้าเรียนรายวิชา</h3>
+      <canvas id="pieChart"></canvas>
+    </div>
+
+    <!-- กราฟแท่ง: สถิติตายวันที่ -->
+    <div class="chart-card">
+      <h3>จำนวนผู้เข้าเรียนรายวัน (7 วันล่าสุด)</h3>
+      <canvas id="barChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_URL = localStorage.getItem('gasApiUrl');
+
+  async function initReport() {
+    if (!API_URL) {
+      alert('กรุณาตั้งค่า API URL ก่อน');
+      return;
+    }
+
+    try {
+      // ดึงข้อมูลพร้อมกันเพื่อความเร็ว
+      const [attRes, subRes, stuRes] = await Promise.all([
+        fetch(`${API_URL}?action=getAttendanceReport`).then(r => r.json()),
+        fetch(`${API_URL}?action=getSubjects`).then(r => r.json()),
+        fetch(`${API_URL}?action=getStudents`).then(r => r.json())
+      ]);
+
+      document.getElementById('totalLogs').innerText = attRes.length;
+      document.getElementById('totalSubjects').innerText = subRes.length;
+      document.getElementById('totalStudents').innerText = stuRes.length;
+
+      renderPieChart(attRes);
+      renderBarChart(attRes);
+
+    } catch (e) {
+      console.error('Report Error:', e);
+    }
+  }
+
+  function renderPieChart(data) {
+    const counts = {};
+    data.forEach(item => {
+      const sub = item.Subject || item['วิชา'] || 'ไม่ระบุ';
+      counts[sub] = (counts[sub] || 0) + 1;
+    });
+
+    const ctx = document.getElementById('pieChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'pie',
+      data: {
+        labels: Object.keys(counts),
+        datasets: [{
+          data: Object.values(counts),
+          backgroundColor: [
+            '#6366f1', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#06b6d4'
+          ],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Sarabun' } } }
+        }
+      }
+    });
+  }
+
+  function renderBarChart(data) {
+    const counts = {};
+    // จัดกลุ่มตามวันที่
+    data.forEach(item => {
+      const date = item.Date || item['วันที่'];
+      if (date) counts[date] = (counts[date] || 0) + 1;
+    });
+
+    // เรียงวันที่และดึง 7 วันล่าสุด
+    const sortedDates = Object.keys(counts).sort().slice(-7);
+    const values = sortedDates.map(d => counts[d]);
+
+    const ctx = document.getElementById('barChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: sortedDates,
+        datasets: [{
+          label: 'จำนวนคน',
+          data: values,
+          backgroundColor: 'rgba(99, 102, 241, 0.8)',
+          borderRadius: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: { beginAtZero: true, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+          x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  }
+
+  window.onload = initReport;
+</script>
+
+</body>
+</html>
