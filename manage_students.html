@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    :root { --p: #6366f1; --bg: #f8fafc; --err: #ef4444; }
+    :root { --p: #6366f1; --bg: #f8fafc; --err: #ef4444; --success: #10b981; }
     body { font-family: 'Sarabun', sans-serif; background: var(--bg); padding: 20px; margin: 0; }
     .container { max-width: 600px; margin: 0 auto; }
     .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
@@ -16,11 +16,14 @@
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
     th { text-align: left; padding: 12px; background: #f8fafc; color: #64748b; font-size: 13px; }
     td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
-    .status-badge { padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+    .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; white-space: nowrap; }
     .status-ok { background: #dcfce7; color: #166534; }
     .status-missing { background: #fee2e2; color: #991b1b; }
-    .btn-del { color: var(--err); cursor: pointer; border: none; background: none; font-size: 16px; }
-    .loading { text-align: center; padding: 20px; color: #64748b; }
+    .btn-del { color: #94a3b8; cursor: pointer; border: none; background: none; font-size: 16px; transition: 0.2s; }
+    .btn-del:hover { color: var(--err); }
+    .loading-box { text-align: center; padding: 40px 20px; color: #64748b; }
+    .spinner { border: 3px solid #f3f3f3; border-top: 3px solid var(--p); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 10px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -31,53 +34,81 @@
     </div>
 
     <div class="card">
-      <div id="loader" class="loading">กำลังโหลดรายชื่อ...</div>
-      <table id="user-table" style="display: none;">
-        <thead>
-          <tr>
-            <th>ชื่อ-นามสกุล</th>
-            <th>สถานะใบหน้า</th>
-            <th>จัดการ</th>
-          </tr>
-        </thead>
-        <tbody id="user-list"></tbody>
-      </table>
+      <div id="loader" class="loading-box">
+        <div class="spinner"></div> กำลังดึงข้อมูลจาก Server...
+      </div>
+      
+      <div id="error-msg" style="display:none; color:var(--err); text-align:center; padding: 20px;">
+        ⚠️ ไม่สามารถดึงข้อมูลได้ โปรดตรวจสอบ URL ของ API หรือการเชื่อมต่ออินเทอร์เน็ต
+      </div>
+
+      <div id="table-container" style="display: none;">
+        <table>
+          <thead>
+            <tr>
+              <th>ชื่อ-นามสกุล</th>
+              <th>สถานะใบหน้า</th>
+              <th style="text-align:right;">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="user-list"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
 <script>
+  // ดึงค่า URL API จาก Local Storage
   const API = localStorage.getItem('gas_v5');
 
   window.onload = async () => {
-    if(!API) return window.location.href = "index.html";
-    loadUsers();
+    if(!API || API === "") {
+      alert("ไม่พบ URL API กรุณากลับไปตั้งค่าที่หน้าแรก");
+      window.location.href = "index.html";
+      return;
+    }
+    await loadUsers();
   };
 
   async function loadUsers() {
-    try {
-      const res = await fetch(`${API}?action=getKnownFaces&t=${Date.now()}`);
-      const data = await res.json();
-      const list = document.getElementById('user-list');
-      const loader = document.getElementById('loader');
-      const table = document.getElementById('user-table');
-      
-      list.innerHTML = "";
-      loader.style.display = 'none';
-      table.style.display = 'table';
+    const list = document.getElementById('user-list');
+    const loader = document.getElementById('loader');
+    const errorBox = document.getElementById('error-msg');
+    const container = document.getElementById('table-container');
 
+    loader.style.display = 'block';
+    errorBox.style.display = 'none';
+    container.style.display = 'none';
+    list.innerHTML = "";
+
+    try {
+      // เพิ่ม TimeStamp เพื่อป้องกัน Cache และดึงข้อมูลใหม่เสมอ
+      const response = await fetch(`${API}?action=getKnownFaces&t=${Date.now()}`);
+      
+      if (!response.ok) throw new Error('Network response was not ok');
+      
+      const data = await response.json();
+      
+      loader.style.display = 'none';
+      container.style.display = 'block';
+
+      // ตรวจสอบข้อมูลก่อนแสดงผล
       if (Array.isArray(data) && data.length > 0) {
         data.forEach(user => {
-          const hasDesc = user.descriptor && user.descriptor.length > 0;
+          // ตรวจสอบว่ามีข้อมูล Descriptor หรือไม่
+          const hasDesc = user.descriptor && Array.isArray(user.descriptor) && user.descriptor.length > 0;
+          
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td><b>${user.name}</b></td>
             <td>
               <span class="status-badge ${hasDesc ? 'status-ok' : 'status-missing'}">
-                ${hasDesc ? 'มีข้อมูลใบหน้า' : 'ไม่มีข้อมูลใบหน้า'}
+                <i class="fas ${hasDesc ? 'fa-check-circle' : 'fa-times-circle'}"></i> 
+                ${hasDesc ? 'พร้อมสแกน' : 'ยังไม่ลงใบหน้า'}
               </span>
             </td>
-            <td>
-              <button class="btn-del" onclick="deleteUser('${user.name}')">
+            <td style="text-align:right;">
+              <button class="btn-del" title="ลบรายชื่อ" onclick="deleteUser('${user.name}')">
                 <i class="fas fa-trash-alt"></i>
               </button>
             </td>
@@ -85,26 +116,35 @@
           list.appendChild(tr);
         });
       } else {
-        list.innerHTML = "<tr><td colspan='3' style='text-align:center;'>ไม่พบรายชื่อนักศึกษา</td></tr>";
+        list.innerHTML = "<tr><td colspan='3' style='text-align:center; padding: 30px; color: #94a3b8;'>ยังไม่มีรายชื่อนักศึกษาในระบบ</td></tr>";
       }
     } catch (e) {
-      document.getElementById('loader').innerText = "เกิดข้อผิดพลาดในการโหลดข้อมูล";
+      console.error("Fetch Error:", e);
+      loader.style.display = 'none';
+      errorBox.style.display = 'block';
     }
   }
 
   async function deleteUser(name) {
-    if(!confirm(`คุณต้องการลบรายชื่อ "${name}" ใช่หรือไม่?`)) return;
+    if(!confirm(`คุณต้องการลบรายชื่อ "${name}" ออกจากระบบใช่หรือไม่?\n(ข้อมูลใน Google Sheets จะถูกลบออกด้วย)`)) return;
     
     try {
-      // หมายเหตุ: โค้ด Apps Script ต้องรองรับ action 'deleteUser'
-      const response = await fetch(API, {
+      // ส่งคำขอแบบ JSON เพื่อความรวดเร็ว
+      const res = await fetch(API, {
         method: 'POST',
         body: JSON.stringify({ action: 'deleteUser', name: name })
       });
-      alert("ลบข้อมูลเรียบร้อย");
-      loadUsers();
+      
+      const result = await res.json();
+      if (result.success) {
+        alert("ลบข้อมูลสำเร็จ");
+        loadUsers();
+      } else {
+        alert("เกิดข้อผิดพลาด: " + result.message);
+      }
     } catch (e) {
-      alert("ลบข้อมูลสำเร็จ (กรุณารอระบบอัปเดตสักครู่)");
+      // สำหรับบางเบราว์เซอร์ที่บล็อก CORS ตอน POST แต่ข้อมูลอาจเข้าแล้ว
+      alert("ส่งคำขอลบแล้ว กำลังตรวจสอบสถานะใหม่...");
       loadUsers();
     }
   }
