@@ -3,145 +3,138 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>ระบบสแกนใบหน้า - Smart Detection</title>
+  <title>Fast Face Scanner</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <style>
     :root { --primary: #4f46e5; --accent: #10b981; --warning: #f59e0b; --bg: #0f172a; }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; }
-    body { background: var(--bg); color: white; padding: 15px; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-    .container { width: 100%; max-width: 400px; background: #1e293b; padding: 20px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-    .header { text-align: center; margin-bottom: 15px; }
-    #status { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 13px; margin-top: 8px; font-weight: 600; background: #334155; color: #94a3b8; }
-    .status-ready { background: rgba(16, 185, 129, 0.2) !important; color: var(--accent) !important; }
-    .cam-box { width: 100%; aspect-ratio: 1/1; background: #000; border-radius: 18px; overflow: hidden; position: relative; border: 2px solid #475569; }
+    body { background: var(--bg); color: white; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow: hidden; }
+    .container { width: 100%; max-width: 400px; padding: 20px; text-align: center; }
+    .header h2 { margin-bottom: 5px; }
+    #status { padding: 4px 12px; border-radius: 20px; font-size: 12px; background: #334155; color: #94a3b8; display: inline-block; margin-bottom: 15px; }
+    .status-ok { background: rgba(16, 185, 129, 0.2) !important; color: var(--accent) !important; }
+    
+    .viewfinder { width: 100%; aspect-ratio: 1/1; background: #000; border-radius: 24px; overflow: hidden; position: relative; border: 3px solid #334155; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
     video { width: 100%; height: 100%; object-fit: cover; }
-    canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-    #result-msg { text-align: center; margin: 15px 0; font-weight: bold; min-height: 28px; font-size: 20px; transition: 0.3s; }
-    .log-container { background: #0f172a; border-radius: 12px; padding: 12px; max-height: 120px; overflow-y: auto; font-size: 13px; border: 1px solid #334155; }
-    .log-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #1e293b; }
-    .log-row:last-child { border: none; }
+    canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+    #msg-box { margin-top: 20px; font-size: 20px; font-weight: bold; min-height: 30px; }
+    .log-panel { width: 90%; max-width: 360px; background: rgba(30, 41, 59, 0.7); border-radius: 15px; margin-top: 15px; padding: 10px; font-size: 12px; }
+    .log-entry { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
   </style>
 </head>
 <body>
 
 <div class="container">
   <div class="header">
-    <h3 id="subText">วิชา: กำลังโหลด...</h3>
-    <div id="status">⏳ กำลังเตรียมระบบ AI...</div>
+    <h2 id="title">กำลังวิเคราะห์...</h2>
+    <div id="status">⌛ กำลังปลุกระบบ AI...</div>
   </div>
-  <div class="cam-box">
-    <video id="video" autoplay muted playsinline></video>
+
+  <div class="viewfinder">
+    <video id="webcam" autoplay muted playsinline></video>
     <canvas id="overlay"></canvas>
   </div>
-  <div id="result-msg"></div>
-  <div class="log-container" id="logList">
-    <div style="color:#64748b; font-size:11px; margin-bottom:4px; text-align:center;">--- ประวัติการสแกนล่าสุด ---</div>
+
+  <div id="msg-box"></div>
+  
+  <div class="log-panel" id="logs">
+    <div style="color:#64748b; margin-bottom:5px;">สแกนล่าสุด:</div>
   </div>
 </div>
 
 <script>
   const API_URL = localStorage.getItem('gasApiUrl');
-  const subject = localStorage.getItem('currentSubject') || "ทั่วไป";
+  const subject = localStorage.getItem('currentSubject') || "ไม่ได้ระบุวิชา";
+  const video = document.getElementById('webcam');
+  const canvas = document.getElementById('overlay');
+  const msgBox = document.getElementById('msg-box');
+  
+  document.getElementById('title').innerText = subject;
+
   let faceMatcher = null;
-  let isLocked = false;
+  let processing = false;
+  let modelLoaded = false;
 
-  document.getElementById('subText').innerText = "วิชา: " + subject;
-
-  async function startApp() {
+  async function init() {
     try {
-      // โหลดโมเดล
+      // 1. โหลดโมเดลรุ่น Tiny (เร็วและเสถียรกว่ามากบนมือถือ)
       const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
-      await Promise.all([
-        faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-      ]);
+      await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
       
-      document.getElementById('status').innerText = "⏳ ดึงข้อมูลนักศึกษา...";
+      document.getElementById('status').innerText = "⌛ ดึงข้อมูลนักศึกษา...";
 
-      // ดึงข้อมูลใบหน้าจาก GAS
+      // 2. ดึงฐานข้อมูลใบหน้า
       const res = await fetch(`${API_URL}?action=getKnownFaces`);
-      const users = await res.json();
+      const data = await res.json();
       
-      if (users && users.length > 0) {
-        const labeled = users.map(u => new faceapi.LabeledFaceDescriptors(u.name, [new Float32Array(u.descriptor)]));
-        faceMatcher = new faceapi.FaceMatcher(labeled, 0.6); // ปรับ Threshold ให้กว้างขึ้น
+      if (data && data.length > 0) {
+        const labeled = data.map(u => new faceapi.LabeledFaceDescriptors(u.name, [new Float32Array(u.descriptor)]));
+        faceMatcher = new faceapi.FaceMatcher(labeled, 0.5); // Threshold 0.5 กว้างกำลังดี
       }
 
-      // เปิดกล้อง
+      // 3. เปิดกล้อง
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 640 } } 
+        video: { facingMode: "user", width: 400, height: 400 } 
       });
       video.srcObject = stream;
+      modelLoaded = true;
       
       video.onplay = () => {
-        const statusEl = document.getElementById('status');
-        statusEl.innerText = "✅ พร้อมเช็คชื่อ";
-        statusEl.classList.add('status-ready');
-        detectLoop();
+        document.getElementById('status').innerText = "✅ ระบบพร้อมทำงาน";
+        document.getElementById('status').classList.add('status-ok');
+        onPlay();
       };
     } catch (e) {
-      document.getElementById('status').innerText = "❌ ไม่สามารถเริ่มระบบได้";
-      console.error(e);
+      document.getElementById('status').innerText = "❌ เกิดข้อผิดพลาด: " + e.message;
     }
   }
 
-  async function detectLoop() {
-    if (isLocked) {
-      setTimeout(detectLoop, 500);
-      return;
-    }
+  async function onPlay() {
+    if (!modelLoaded || video.paused || video.ended) return;
 
-    const canvas = document.getElementById('overlay');
-    const displaySize = { width: video.videoWidth, height: video.videoHeight };
-    
-    // ตรวจสอบขนาด canvas ให้ตรงกับวิดีโอ
-    if (canvas.width !== displaySize.width) {
-      faceapi.matchDimensions(canvas, displaySize);
-    }
-
-    // ตรวจจับใบหน้า (ลดความละเอียดเล็กน้อยเพื่อความลื่น)
-    const detections = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+    // ตรวจจับด้วย TinyFaceDetector (ประหยัดทรัพยากรมาก)
+    const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({ inputSize: 160, scoreThreshold: 0.5 }))
                                    .withFaceLandmarks()
                                    .withFaceDescriptors();
 
+    const displaySize = { width: video.videoWidth, height: video.videoHeight };
+    faceapi.matchDimensions(canvas, displaySize);
+    
+    const resizedDetections = faceapi.resizeResults(detections, displaySize);
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (detections.length > 0) {
-      const resized = faceapi.resizeResults(detections, displaySize);
-      
-      // วาดกรอบ
-      resized.forEach(det => {
-        const bestMatch = faceMatcher ? faceMatcher.findBestMatch(det.descriptor) : { label: 'unknown', distance: 1 };
-        const box = det.detection.box;
+    if (resizedDetections.length > 0) {
+      resizedDetections.forEach(result => {
+        const { detection, descriptor } = result;
+        const label = faceMatcher ? faceMatcher.findBestMatch(descriptor).toString() : "Unknown";
         
-        ctx.strokeStyle = bestMatch.label === 'unknown' ? '#ef4444' : '#10b981';
-        ctx.lineWidth = 3;
+        // วาดกรอบสแกน
+        const box = detection.box;
+        ctx.strokeStyle = label.includes('unknown') ? '#ef4444' : '#10b981';
+        ctx.lineWidth = 4;
         ctx.strokeRect(box.x, box.y, box.width, box.height);
-        
-        // แสดงชื่อบนกรอบ
-        ctx.fillStyle = ctx.strokeStyle;
-        ctx.font = 'bold 16px Sarabun';
-        ctx.fillText(bestMatch.label, box.x, box.y > 20 ? box.y - 10 : 20);
 
-        // หากจำได้และอยู่ในระยะแม่นยำ (0.5 คือค่าที่กำลังดี)
-        if (bestMatch.label !== 'unknown' && bestMatch.distance < 0.5) {
-          sendAttendance(bestMatch.label);
+        // ถ้าเจอชื่อและไม่ติดขัดการทำงานอื่น
+        if (!label.includes('unknown') && !processing) {
+          const nameOnly = label.split(' (')[0];
+          submitAttendance(nameOnly);
         }
       });
     }
 
-    // หน่วงเวลาสั้นๆ เพื่อไม่ให้ CPU ทำงาน 100%
-    setTimeout(() => requestAnimationFrame(detectLoop), 100);
+    // ใช้ requestAnimationFrame แทน setInterval เพื่อความลื่นไหล
+    requestAnimationFrame(onPlay);
   }
 
-  async function sendAttendance(name) {
-    isLocked = true;
-    const msg = document.getElementById('result-msg');
-    msg.style.color = "white";
-    msg.innerText = "⌛ บันทึกชื่อ: " + name;
+  async function submitAttendance(name) {
+    processing = true;
+    msgBox.style.color = "white";
+    msgBox.innerText = `🔍 พบคุณ ${name}...`;
 
     try {
       const response = await fetch(API_URL, {
@@ -153,38 +146,38 @@
           lat: 0, lng: 0
         })
       });
-      const data = await response.json();
+      const res = await response.json();
       
-      if (data.success) {
-        msg.style.color = "var(--accent)";
-        msg.innerText = "✅ เช็คชื่อสำเร็จ: " + name;
+      if (res.success) {
+        msgBox.style.color = "var(--accent)";
+        msgBox.innerText = `✅ สำเร็จ: ${name}`;
       } else {
-        msg.style.color = "var(--warning)";
-        msg.innerText = "⚠️ " + (data.message || "เช็คชื่อซ้ำ");
+        msgBox.style.color = "var(--warning)";
+        msgBox.innerText = res.message || "เช็คชื่อซ้ำ";
       }
-      addLog(name, data.success);
+      addLog(name, res.success);
     } catch (e) {
-      msg.innerText = "❌ ส่งข้อมูลไม่สำเร็จ";
+      msgBox.innerText = "❌ การเชื่อมต่อผิดพลาด";
     }
 
-    // หยุดรอ 3 วินาที
+    // หน่วงเวลา 4 วินาทีเพื่อลดการสแกนซ้ำซ้อน
     setTimeout(() => {
-      isLocked = false;
-      msg.innerText = "";
-    }, 3000);
+      processing = false;
+      msgBox.innerText = "";
+    }, 4000);
   }
 
-  function addLog(name, ok) {
-    const list = document.getElementById('logList');
+  function addLog(name, isOk) {
     const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-    const div = document.createElement('div');
-    div.className = 'log-row';
-    div.innerHTML = `<span>${name}</span><span style="color:${ok?'var(--accent)':'var(--warning)'}">${ok?'สำเร็จ':'ซ้ำ'} (${time})</span>`;
-    list.prepend(div);
-    if (list.children.length > 6) list.lastChild.remove();
+    const row = document.createElement('div');
+    row.className = 'log-entry';
+    row.innerHTML = `<span>${name}</span><span style="color:${isOk?'#10b981':'#f59e0b'}">${isOk?'สำเร็จ':'ซ้ำ'} (${time})</span>`;
+    const logs = document.getElementById('logs');
+    logs.prepend(row);
+    if (logs.children.length > 5) logs.lastChild.remove();
   }
 
-  window.onload = startApp;
+  window.onload = init;
 </script>
 </body>
 </html>
