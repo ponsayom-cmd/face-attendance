@@ -2,151 +2,74 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Smart Attendance v5.2</title>
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Attendance v5.4</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    :root { --p: #6366f1; --s: #818cf8; --a: #10b981; --bg: #f8fafc; --txt: #1e293b; --card: #ffffff; }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; }
-    body { background: var(--bg); color: var(--txt); padding-bottom: 80px; }
-    .nav { position: fixed; bottom: 0; left: 0; right: 0; background: #fff; display: flex; padding: 12px; border-top: 1px solid #e2e8f0; z-index: 1000; box-shadow: 0 -5px 15px rgba(0,0,0,0.03); }
-    .nav-btn { flex: 1; text-align: center; color: #94a3b8; font-size: 11px; cursor: pointer; border: none; background: none; }
-    .nav-btn.active { color: var(--p); font-weight: 700; }
-    .nav-btn i { font-size: 22px; display: block; margin-bottom: 4px; }
-    .page { display: none; padding: 20px; max-width: 600px; margin: 0 auto; }
-    .page.active { display: block; }
-    .card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 15px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; }
-    input, select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 15px; font-size: 15px; outline: none; }
-    .btn { padding: 14px; border-radius: 12px; border: none; font-weight: 700; width: 100%; cursor: pointer; transition: 0.2s; }
-    .btn-p { background: var(--p); color: white; }
-    .table { width: 100%; border-collapse: collapse; }
-    .table td { padding: 12px 8px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
-    .spinner { border: 3px solid #f3f3f3; border-top: 3px solid var(--p); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 10px auto; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    .chart-box { height: 200px; margin: 15px 0; }
+    :root { --p: #6366f1; --bg: #f8fafc; }
+    body { font-family: 'Sarabun', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+    .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); width: 100%; max-width: 400px; margin-bottom: 15px; }
+    select, input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #ddd; }
+    .btn { background: var(--p); color: white; border: none; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 400px; }
+    .btn-sub { background: white; color: #444; border: 1px solid #ddd; padding: 15px; border-radius: 12px; text-decoration: none; text-align: center; font-size: 14px; }
+    .status { font-size: 11px; text-align: center; margin-top: 5px; }
   </style>
 </head>
 <body>
-
-  <div id="p-home" class="page active">
-    <h2>สแกนใบหน้า 👋</h2>
-    <div class="card">
-      <label style="font-size:12px; color:#64748b">เลือกรายวิชา</label>
-      <select id="sel-sub"><option value="">-- โหลดข้อมูล --</option></select>
-      <button class="btn btn-p" onclick="goScan()"><i class="fas fa-camera"></i> เริ่มสแกน</button>
-    </div>
-    <div class="card">
-      <input type="text" id="api-url" placeholder="วาง URL Web App..." onchange="saveApi()">
-      <div id="api-info" style="font-size:11px; text-align:center"></div>
-    </div>
+  <h2>ระบบเช็คชื่อ 👋</h2>
+  
+  <div class="card">
+    <label>เลือกรายวิชาเพื่อเข้าเรียน</label>
+    <select id="sel-sub"><option value="">-- กำลังโหลดวิชา --</option></select>
+    <button class="btn" onclick="goScan()"><i class="fas fa-camera"></i> เริ่มสแกนใบหน้า</button>
   </div>
 
-  <div id="p-report" class="page">
-    <h2>รายงาน 📊</h2>
-    <div class="card">
-      <div class="chart-box"><canvas id="myChart"></canvas></div>
-    </div>
-    <div class="card" style="padding:10px">
-      <table class="table"><tbody id="list-report"></tbody></table>
-    </div>
+  <div class="menu-grid">
+    <a href="register.html" class="btn-sub"><i class="fas fa-user-plus"></i><br>ลงทะเบียน</a>
+    <a href="subjects.html" class="btn-sub"><i class="fas fa-book"></i><br>จัดการวิชา</a>
+    <a href="report.html" class="btn-sub"><i class="fas fa-chart-bar"></i><br>ดูรายงาน</a>
+    <div class="btn-sub" onclick="setApi()"><i class="fas fa-cog"></i><br>ตั้งค่า API</div>
   </div>
 
-  <div id="p-users" class="page">
-    <h2>นักศึกษา 🎓</h2>
-    <div class="card" style="padding:10px">
-      <div id="list-users"></div>
-    </div>
-    <a href="register.html" style="position:fixed; bottom:90px; right:20px; background:var(--a); color:white; width:50px; height:50px; border-radius:25px; display:flex; align-items:center; justify-content:center; text-decoration:none"><i class="fas fa-plus"></i></a>
-  </div>
-
-  <nav class="nav">
-    <div class="nav-btn active" onclick="nav('p-home')"><i class="fas fa-home"></i>หน้าหลัก</div>
-    <div class="nav-btn" onclick="nav('p-report')"><i class="fas fa-chart-pie"></i>รายงาน</div>
-    <div class="nav-btn" onclick="nav('p-users')"><i class="fas fa-users"></i>นักศึกษา</div>
-  </nav>
+  <div id="api-status" class="status"></div>
 
 <script>
   let API = localStorage.getItem('gas_v5') || '';
-  let chart = null;
 
-  window.onload = () => {
-    document.getElementById('api-url').value = API;
-    if(API) sync();
+  window.onload = async () => {
+    if(!API) {
+      setApi();
+    } else {
+      loadSubjects();
+    }
   };
 
-  function nav(id) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-    event.currentTarget.classList.add('active');
-    if(id === 'p-users') loadUsers();
-    if(id === 'p-report') loadReport();
-  }
-
-  async function sync() {
+  async function loadSubjects() {
     try {
       const res = await fetch(`${API}?action=getSubjects&t=${Date.now()}`);
       const data = await res.json();
       const s = document.getElementById('sel-sub');
       s.innerHTML = '<option value="">-- เลือกวิชา --</option>';
-      data.forEach(v => s.innerHTML += `<option value="${v.name}">${v.code} ${v.name}</option>`);
-      document.getElementById('api-info').innerHTML = "<span style='color:green'>ออนไลน์</span>";
-    } catch(e) { document.getElementById('api-info').innerHTML = "<span style='color:red'>เชื่อมต่อไม่ได้</span>"; }
+      data.forEach(v => s.innerHTML += `<option value="${v.name}">${v.name}</option>`);
+      document.getElementById('api-status').innerHTML = "✅ ระบบออนไลน์";
+    } catch(e) {
+      document.getElementById('api-status').innerHTML = "❌ ติดต่อ Server ไม่ได้";
+    }
   }
 
-  async function loadUsers() {
-    const div = document.getElementById('list-users');
-    div.innerHTML = '<div class="spinner"></div>';
-    try {
-      const res = await fetch(`${API}?action=getKnownFaces&t=${Date.now()}`);
-      const data = await res.json();
-      div.innerHTML = '<table class="table"></table>';
-      const tbl = div.querySelector('table');
-      data.forEach(v => {
-        tbl.innerHTML += `<tr><td><b>${v.name}</b></td><td style="text-align:right"><i class="fas fa-trash" style="color:#ef4444" onclick="delUser('${v.name}')"></i></td></tr>`;
-      });
-    } catch(e) { div.innerHTML = 'Error'; }
-  }
-
-  async function loadReport() {
-    try {
-      const res = await fetch(`${API}?action=getAttendance&t=${Date.now()}`);
-      const data = await res.json();
-      const list = document.getElementById('list-report');
-      list.innerHTML = '';
-      const counts = {};
-      data.forEach(r => {
-        counts[r.subject] = (counts[r.subject] || 0) + 1;
-        list.innerHTML += `<tr><td>${r.name}</td><td>${r.subject}</td><td style="font-size:10px">${r.time}</td></tr>`;
-      });
-      renderChart(counts);
-    } catch(e) {}
-  }
-
-  function renderChart(counts) {
-    const ctx = document.getElementById('myChart').getContext('2d');
-    if(chart) chart.destroy();
-    chart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: Object.keys(counts),
-        datasets: [{ label: 'จำนวนผู้เข้าเรียน', data: Object.values(counts), backgroundColor: '#6366f1' }]
-      },
-      options: { maintainAspectRatio: false }
-    });
-  }
-
-  function saveApi() {
-    API = document.getElementById('api-url').value.trim();
-    localStorage.setItem('gas_v5', API);
-    sync();
+  function setApi() {
+    const url = prompt("ระบุ URL Web App (/exec):", API);
+    if(url) {
+      localStorage.setItem('gas_v5', url);
+      location.reload();
+    }
   }
 
   function goScan() {
     const s = document.getElementById('sel-sub').value;
-    if(!s) return alert('เลือกวิชาก่อน');
+    if(!s) return alert('กรุณาเลือกวิชา');
     localStorage.setItem('currentSubject', s);
     window.location.href = 'scan.html';
   }
