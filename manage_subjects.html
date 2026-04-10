@@ -10,43 +10,101 @@
     .card { background: white; padding: 20px; border-radius: 15px; max-width: 500px; margin: 0 auto; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
     input { width: 100%; padding: 12px; margin: 5px 0 15px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; }
     .btn { background: #10b981; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; cursor: pointer; font-weight: bold; }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
     table { width: 100%; margin-top: 20px; border-collapse: collapse; }
-    td { padding: 10px; border-bottom: 1px solid #eee; }
+    th { text-align: left; padding: 10px; border-bottom: 2px solid #eee; color: #64748b; font-size: 14px; }
+    td { padding: 10px; border-bottom: 1px solid #eee; font-size: 14px; }
     .back { display: block; text-align: center; margin-top: 20px; color: #666; text-decoration: none; }
+    .error-msg { color: #ef4444; font-size: 12px; text-align: center; margin-top: 10px; display: none; }
   </style>
 </head>
 <body>
   <div class="card">
     <h3>เพิ่มรายวิชาใหม่ 📚</h3>
+    <div id="api-error" class="error-msg">❌ ไม่พบ URL ของ Web App กรุณากลับไปตั้งค่าที่หน้าหลัก</div>
     <input type="text" id="code" placeholder="รหัสวิชา">
     <input type="text" id="name" placeholder="ชื่อวิชา">
-    <button class="btn" onclick="addSubject()">บันทึกข้อมูล</button>
+    <button id="btn-save" class="btn" onclick="addSubject()">บันทึกข้อมูล</button>
 
-    <table id="sub-table"></table>
+    <table id="sub-table">
+      <thead>
+        <tr><th>รหัส</th><th>ชื่อวิชา</th></tr>
+      </thead>
+      <tbody id="sub-list"></tbody>
+    </table>
   </div>
   <a href="index.html" class="back">กลับหน้าหลัก</a>
 
 <script>
+  // ดึงค่า URL จาก localStorage
   const API = localStorage.getItem('gas_v5');
-  window.onload = loadSubjects;
+  
+  window.onload = () => {
+    if (!API) {
+      document.getElementById('api-error').style.display = 'block';
+      document.getElementById('btn-save').disabled = true;
+      return;
+    }
+    loadSubjects();
+  };
 
   async function addSubject() {
-    const code = document.getElementById('code').value;
-    const name = document.getElementById('name').value;
-    if(!code || !name) return alert("กรอกข้อมูลให้ครบ");
+    if (!API) return alert("กรุณาตั้งค่า API URL ในหน้าหลักก่อน");
     
-    await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'addSubject', code, name }) });
-    location.reload();
+    const code = document.getElementById('code').value.trim();
+    const name = document.getElementById('name').value.trim();
+    
+    if (!code || !name) return alert("กรุณากรอกข้อมูลให้ครบทุกช่อง");
+    
+    const btn = document.getElementById('btn-save');
+    btn.disabled = true;
+    btn.innerText = "กำลังบันทึก...";
+    
+    try {
+      const response = await fetch(API, { 
+        method: 'POST', 
+        body: JSON.stringify({ action: 'addSubject', code, name }) 
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        document.getElementById('code').value = '';
+        document.getElementById('name').value = '';
+        loadSubjects();
+      } else {
+        alert("เกิดข้อผิดพลาด: " + (result.message || "ไม่สามารถบันทึกได้"));
+      }
+    } catch (e) {
+      console.error(e);
+      alert("ไม่สามารถเชื่อมต่อกับ Server ได้");
+    } finally {
+      btn.disabled = false;
+      btn.innerText = "บันทึกข้อมูล";
+    }
   }
 
   async function loadSubjects() {
-    const res = await fetch(`${API}?action=getSubjects`);
-    const data = await res.json();
-    const table = document.getElementById('sub-table');
-    table.innerHTML = "<tr><th>รหัส</th><th>ชื่อวิชา</th></tr>";
-    data.forEach(v => {
-      table.innerHTML += `<tr><td>${v.code}</td><td>${v.name}</td></tr>`;
-    });
+    if (!API) return;
+    
+    const tableBody = document.getElementById('sub-list');
+    tableBody.innerHTML = '<tr><td colspan="2" style="text-align:center">⏳ กำลังโหลด...</td></tr>';
+    
+    try {
+      const res = await fetch(`${API}?action=getSubjects&t=${Date.now()}`);
+      const data = await res.json();
+      
+      tableBody.innerHTML = "";
+      if (Array.isArray(data) && data.length > 0) {
+        data.forEach(v => {
+          tableBody.innerHTML += `<tr><td><b>${v.code}</b></td><td>${v.name}</td></tr>`;
+        });
+      } else {
+        tableBody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:#94a3b8">ยังไม่มีข้อมูลรายวิชา</td></tr>';
+      }
+    } catch (e) {
+      console.error(e);
+      tableBody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:#ef4444">❌ ไม่สามารถโหลดข้อมูลได้</td></tr>';
+    }
   }
 </script>
 </body>
