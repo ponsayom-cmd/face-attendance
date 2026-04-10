@@ -7,234 +7,148 @@
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; }
 
     body {
       font-family: 'Sarabun', sans-serif;
       min-height: 100vh;
-      background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d1b2a 100%);
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
       color: #e2e8f0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 40px 20px 60px;
-      position: relative;
-      overflow-x: hidden;
+      padding: 40px 20px;
     }
 
-    /* Ambient orbs */
-    body::before, body::after {
-      content: '';
-      position: fixed;
-      border-radius: 50%;
-      filter: blur(80px);
-      opacity: 0.15;
-      pointer-events: none;
-      z-index: 0;
-    }
-    body::before { width: 300px; height: 300px; background: #6366f1; top: -50px; left: -50px; }
-    body::after { width: 400px; height: 400px; background: #06b6d4; bottom: -100px; right: -100px; }
+    .header { text-align: center; margin-bottom: 40px; z-index: 1; }
+    .header h1 { font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .header p { color: #94a3b8; font-size: 16px; }
 
-    .header {
-      text-align: center;
-      margin-bottom: 40px;
-      z-index: 1;
-      animation: fadeInDown 0.8s ease-out;
-    }
-
-    .logo-icon {
-      font-size: 64px;
-      margin-bottom: 15px;
-      display: inline-block;
-      filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.4));
-    }
-
-    h1 {
-      font-size: 28px;
-      font-weight: 700;
-      background: linear-gradient(to right, #fff, #94a3b8);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 8px;
-    }
-
-    .subtitle { color: #94a3b8; font-size: 16px; letter-spacing: 0.5px; }
-
-    .menu-section {
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
       width: 100%;
-      max-width: 480px;
-      margin-bottom: 30px;
+      max-width: 900px;
       z-index: 1;
     }
 
-    .section-title {
-      font-size: 14px;
-      font-weight: 600;
-      color: #6366f1;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      margin-bottom: 15px;
-      padding-left: 10px;
-      border-left: 3px solid #6366f1;
-    }
-
-    .menu-cards {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .btn-menu {
-      display: flex;
-      align-items: center;
-      background: rgba(30, 41, 59, 0.7);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 20px;
+    .card {
+      background: var(--card);
+      padding: 24px;
       border-radius: 20px;
       text-decoration: none;
       color: white;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      border: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      transition: all 0.3s ease;
       position: relative;
       overflow: hidden;
     }
 
-    .btn-menu:hover {
+    .card:hover {
       transform: translateY(-5px);
-      background: rgba(51, 65, 85, 0.8);
-      border-color: rgba(99, 102, 241, 0.5);
+      border-color: var(--primary);
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
     }
 
     .card-icon {
-      width: 50px;
-      height: 50px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 14px;
+      width: 60px;
+      height: 60px;
+      background: rgba(99, 102, 241, 0.1);
+      border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
-      margin-right: 18px;
-      transition: 0.3s;
+      font-size: 30px;
     }
 
-    .btn-menu:hover .card-icon {
-      background: rgba(99, 102, 241, 0.2);
-      transform: scale(1.1) rotate(-5deg);
+    .card-content h3 { font-size: 18px; margin-bottom: 4px; }
+    .card-content p { font-size: 13px; color: #94a3b8; }
+
+    .admin-section {
+      margin-top: 40px;
+      width: 100%;
+      max-width: 900px;
+      border-top: 1px solid #334155;
+      padding-top: 30px;
     }
+    .admin-title { font-size: 14px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; text-align: center; }
 
-    .card-text { flex: 1; }
-    .card-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
-    .card-desc { font-size: 13px; color: #94a3b8; line-height: 1.4; }
-
-    .card-arrow {
-      font-size: 20px;
-      color: #475569;
-      margin-left: 10px;
-      transition: 0.3s;
-    }
-
-    .btn-menu:hover .card-arrow { transform: translateX(5px); color: #6366f1; }
-
-    /* Admin specific colors */
-    .btn-admin { border-left: 4px solid #6366f1; }
-    .btn-student { border-left: 4px solid #10b981; }
-
-    .api-warning {
-      background: rgba(239, 68, 68, 0.15);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
-      padding: 12px 20px;
-      border-radius: 12px;
-      margin-bottom: 25px;
-      font-size: 14px;
-      display: none;
-      animation: shake 0.5s ease-in-out;
-      z-index: 1;
-    }
-
-    .api-warning a { color: white; font-weight: 600; text-decoration: underline; }
-
-    @keyframes fadeInDown {
-      from { opacity: 0; transform: translateY(-20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-5px); }
-      75% { transform: translateX(5px); }
+    .api-status {
+      position: fixed;
+      bottom: 20px;
+      font-size: 12px;
+      color: #64748b;
+      background: rgba(0,0,0,0.3);
+      padding: 8px 16px;
+      border-radius: 20px;
     }
   </style>
 </head>
 <body>
 
   <div class="header">
-    <span class="logo-icon">🎓</span>
-    <h1>ระบบเช็คชื่อด้วยใบหน้า</h1>
-    <p class="subtitle">Smart Attendance System</p>
+    <h1>ระบบเช็คชื่ออัจฉริยะ</h1>
+    <p>Face Recognition & Location Verified</p>
   </div>
 
-  <div id="apiWarning" class="api-warning">
-    ⚠️ ยังไม่ได้ตั้งค่า API — <a href="config.html">ไปตั้งค่าตอนนี้</a>
+  <div class="menu-grid">
+    <!-- ส่วนของนักศึกษา -->
+    <a href="register.html" class="card">
+      <div class="card-icon">👤</div>
+      <div class="card-content">
+        <h3>ลงทะเบียนใบหน้า</h3>
+        <p>สำหรับนักศึกษาใหม่เข้าสู่ระบบ</p>
+      </div>
+    </a>
+
+    <a href="scan.html" class="card">
+      <div class="card-icon">📷</div>
+      <div class="card-content">
+        <h3>สแกนเช็คชื่อ</h3>
+        <p>ยืนยันตัวตนเพื่อเข้าชั้นเรียน</p>
+      </div>
+    </a>
   </div>
 
-  <!-- Student Section -->
-  <div class="menu-section">
-    <div class="section-title">สำหรับนักศึกษา</div>
-    <div class="menu-cards">
-      <a href="register.html" class="btn-menu btn-student">
-        <div class="card-icon">📝</div>
-        <div class="card-text">
-          <div class="card-title">ลงทะเบียนใหม่</div>
-          <div class="card-desc">ลงทะเบียนข้อมูลใบหน้าเพื่อเข้าเรียน</div>
+  <!-- ส่วนของแอดมิน/อาจารย์ -->
+  <div class="admin-section">
+    <div class="admin-title">ส่วนการจัดการและรายงาน</div>
+    <div class="menu-grid">
+      <a href="report.html" class="card" style="border-color: rgba(16, 185, 129, 0.3);">
+        <div class="card-icon" style="background: rgba(16, 185, 129, 0.1);">📊</div>
+        <div class="card-content">
+          <h3>รายงานสถิติ</h3>
+          <p>ดูผลการเข้าเรียนในรูปแบบกราฟ</p>
         </div>
-        <span class="card-arrow">›</span>
       </a>
 
-      <a href="scan.html" class="btn-menu btn-student">
-        <div class="card-icon">🤳</div>
-        <div class="card-text">
-          <div class="card-title">เช็คชื่อเข้าเรียน</div>
-          <div class="card-desc">สแกนใบหน้ายืนยันการเข้าชั้นเรียน</div>
+      <a href="admin.html" class="card" style="border-color: rgba(245, 158, 11, 0.3);">
+        <div class="card-icon" style="background: rgba(245, 158, 11, 0.1);">⚙️</div>
+        <div class="card-content">
+          <h3>จัดการข้อมูล</h3>
+          <p>ลบนักศึกษา / เพิ่มรายวิชา / ตั้งค่า GPS</p>
         </div>
-        <span class="card-arrow">›</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- Admin Section -->
-  <div class="menu-section">
-    <div class="section-title">สำหรับผู้ดูแลระบบ</div>
-    <div class="menu-cards">
-      <a href="admin.html" class="btn-menu btn-admin">
-        <div class="card-icon">📊</div>
-        <div class="card-text">
-          <div class="card-title">Admin Dashboard</div>
-          <div class="card-desc">ดูรายงาน จัดการรายวิชา และนักศึกษา</div>
-        </div>
-        <span class="card-arrow">›</span>
-      </a>
-
-      <a href="config.html" class="btn-menu btn-admin">
-        <div class="card-icon">⚙️</div>
-        <div class="card-text">
-          <div class="card-title">ตั้งค่าระบบ</div>
-          <div class="card-desc">จัดการ API และพิกัด GPS</div>
-        </div>
-        <span class="card-arrow">›</span>
       </a>
     </div>
   </div>
+
+  <div class="api-status" id="apiStatus">เช็คการเชื่อมต่อ API...</div>
 
   <script>
-    // ตรวจสอบการตั้งค่า API
-    window.addEventListener('load', () => {
-      const apiUrl = localStorage.getItem('gasApiUrl');
-      if (!apiUrl || apiUrl === 'null') {
-        document.getElementById('apiWarning').style.display = 'block';
-      }
-    });
+    const apiUrl = localStorage.getItem('gasApiUrl');
+    const statusEl = document.getElementById('apiStatus');
+    
+    if (!apiUrl) {
+      statusEl.innerHTML = '⚠️ ยังไม่ได้ตั้งค่า API <a href="config.html" style="color:#6366f1">ตั้งค่าที่นี่</a>';
+      statusEl.style.color = '#ef4444';
+    } else {
+      statusEl.innerText = '✅ ระบบเชื่อมต่อ API เรียบร้อย';
+    }
   </script>
+
 </body>
 </html>
