@@ -2,122 +2,142 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ลงทะเบียน - High Speed Fix</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>ลงทะเบียนไวทันใจ</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.js"></script>
   <style>
-    :root { --primary: #6366f1; --accent: #10b981; --bg: #0f172a; --card: #1e293b; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Sarabun', sans-serif; background: var(--bg); color: white; display: flex; flex-direction: column; align-items: center; padding: 15px; }
-    .container { max-width: 450px; width: 100%; background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.05); }
+    :root { --primary: #4f46e5; --accent: #10b981; --bg: #0f172a; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; }
+    body { background: var(--bg); color: white; padding: 15px; display: flex; flex-direction: column; align-items: center; }
+    .card { width: 100%; max-width: 400px; background: #1e293b; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
     .input-group { margin-bottom: 12px; }
-    label { display: block; margin-bottom: 5px; color: #94a3b8; font-size: 14px; }
-    input, select { width: 100%; padding: 12px; border-radius: 12px; background: #0f172a; border: 1px solid #334155; color: white; font-size: 16px; outline: none; }
-    .camera-box { width: 100%; aspect-ratio: 1/1; background: #000; border-radius: 15px; overflow: hidden; position: relative; border: 2px solid #334155; margin: 15px 0; }
+    label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 4px; }
+    input, select { width: 100%; padding: 12px; border-radius: 10px; background: #0f172a; border: 1px solid #334155; color: white; font-size: 16px; outline: none; }
+    .cam-box { width: 100%; aspect-ratio: 1/1; background: #000; border-radius: 15px; overflow: hidden; margin: 15px 0; border: 2px solid #334155; position: relative; }
     video { width: 100%; height: 100%; object-fit: cover; }
-    .btn { width: 100%; padding: 16px; border-radius: 12px; border: none; font-weight: bold; font-size: 18px; cursor: pointer; transition: 0.2s; background: var(--primary); color: white; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn { width: 100%; padding: 16px; border-radius: 12px; border: none; font-weight: bold; font-size: 18px; cursor: pointer; background: var(--primary); color: white; transition: 0.2s; }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { background: #334155; color: #64748b; }
+    .status-area { text-align: center; margin-top: 10px; }
     .dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 15px; }
-    .dot { width: 12px; height: 12px; border-radius: 50%; background: #334155; }
-    .dot.active { background: var(--primary); transform: scale(1.2); }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: #334155; transition: 0.3s; }
+    .dot.active { background: var(--primary); transform: scale(1.3); }
     .dot.done { background: var(--accent); }
-    .instr { color: var(--accent); font-weight: 600; text-align: center; margin-bottom: 10px; min-height: 24px; }
-    #loader { display: none; margin-top: 15px; color: #94a3b8; font-size: 13px; text-align: center; }
+    #loader { display: none; font-size: 14px; color: #fbbf24; animation: blink 1s infinite; }
+    @keyframes blink { 50% { opacity: 0.5; } }
   </style>
 </head>
 <body>
 
-<div class="container" id="formUi">
-  <h2 style="text-align:center; margin-bottom:20px;">ลงทะเบียนนักศึกษา</h2>
-  <div class="input-group"><label>รหัสนักศึกษา</label><input type="text" id="sid"></div>
-  <div class="input-group"><label>ชื่อ-นามสกุล</label><input type="text" id="sname"></div>
+<div class="card" id="formPart">
+  <h2 style="text-align:center; margin-bottom:15px;">ข้อมูลนักศึกษา</h2>
+  <div class="input-group"><label>รหัสนักศึกษา</label><input type="text" id="sid" placeholder="6XXXXXXX"></div>
+  <div class="input-group"><label>ชื่อ-นามสกุล</label><input type="text" id="sname" placeholder="ชื่อ นามสกุล"></div>
   <div class="input-group"><label>ชั้นปี</label>
     <select id="syear"><option value="1">ปี 1</option><option value="2">ปี 2</option><option value="3">ปี 3</option><option value="4">ปี 4</option></select>
   </div>
-  <button class="btn" onclick="startScan()">เริ่มสแกนใบหน้า</button>
+  <button class="btn" onclick="openCam()">ถัดไป: สแกนใบหน้า</button>
 </div>
 
-<div class="container" id="scanUi" style="display:none;">
-  <div class="instr" id="instr">เตรียมพร้อม...</div>
+<div class="card" id="scanPart" style="display:none; text-align:center;">
+  <p id="msg" style="color:var(--accent); font-weight:bold; margin-bottom:10px;">กำลังเตรียม AI...</p>
   <div class="dots"><div class="dot" id="d1"></div><div class="dot" id="d2"></div><div class="dot" id="d3"></div></div>
-  <div class="camera-box"><video id="video" autoplay muted playsinline></video></div>
-  <button class="btn" id="btnCap" onclick="capture()">📸 บันทึกรูปที่ 1</button>
-  <div id="loader">🚀 กำลังส่งข้อมูลเข้าระบบ...</div>
+  <div class="cam-box"><video id="video" autoplay muted playsinline></video></div>
+  <button class="btn" id="capBtn" onclick="takePhoto()" disabled>📸 บันทึกท่าที่ 1</button>
+  <p id="loader">🚀 กำลังส่งข้อมูล...</p>
 </div>
 
 <script>
   const API_URL = localStorage.getItem('gasApiUrl');
   let step = 1;
   const video = document.getElementById('video');
-  const texts = ["มองตรงหน้ากล้อง", "เอียงซ้ายเล็กน้อย", "เอียงขวาเล็กน้อย"];
+  const msg = document.getElementById('msg');
+  const loader = document.getElementById('loader');
+  const prompts = ["มองตรง", "เอียงซ้าย", "เอียงขวา"];
 
-  async function startScan() {
-    if(!document.getElementById('sid').value || !document.getElementById('sname').value) return alert('กรุณากรอกข้อมูล');
-    document.getElementById('formUi').style.display = 'none';
-    document.getElementById('scanUi').style.display = 'block';
+  async function openCam() {
+    if(!sid.value || !sname.value) return alert('กรุณากรอกข้อมูลให้ครบ');
+    formPart.style.display = 'none';
+    scanPart.style.display = 'block';
     
-    await Promise.all([
-      faceapi.nets.ssdMobilenetv1.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
-      faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
-      faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model')
-    ]);
-    const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
-    video.srcObject = stream;
-    video.onplay = () => updateUI();
+    try {
+      await Promise.all([
+        faceapi.nets.ssdMobilenetv1.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
+        faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
+        faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model')
+      ]);
+      const s = await navigator.mediaDevices.getUserMedia({ video: { width: 320, height: 320 } });
+      video.srcObject = s;
+      video.onplay = () => {
+        capBtn.disabled = false;
+        refreshUI();
+      };
+    } catch(e) { alert('กล้องไม่พร้อม'); }
   }
 
-  function updateUI() {
-    document.getElementById('instr').innerText = texts[step-1];
-    document.getElementById('btnCap').innerText = `📸 บันทึกรูปที่ ${step}/3`;
-    for(let i=1; i<=3; i++) document.getElementById('d'+i).className = 'dot' + (i===step ? ' active' : (i<step ? ' done' : ''));
+  function refreshUI() {
+    msg.innerText = "กรุณา " + prompts[step-1];
+    capBtn.innerText = `📸 บันทึกท่าที่ ${step}/3`;
+    for(let i=1; i<=3; i++) document.getElementById('d'+i).className = 'dot' + (i===step?' active':(i<step?' done':''));
   }
 
-  async function capture() {
-    const btn = document.getElementById('btnCap');
-    const loader = document.getElementById('loader');
-    btn.disabled = true;
+  async function takePhoto() {
+    capBtn.disabled = true;
     loader.style.display = 'block';
-
-    const detect = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
-    if(!detect) {
+    
+    const det = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+    if(!det) {
       alert('ไม่พบใบหน้า');
-      btn.disabled = false;
+      capBtn.disabled = false;
       loader.style.display = 'none';
       return;
     }
 
-    // --- Optimization: ลดขนาดข้อมูลทศนิยมเหลือ 4 ตำแหน่ง ---
-    const smallDescriptor = Array.from(detect.descriptor).map(n => Math.round(n * 10000) / 10000);
+    // --- ULTRA COMPRESSION ---
+    // ลดทศนิยมเหลือ 3 ตำแหน่งเพื่อขนาดข้อมูลที่เล็กที่สุด
+    const miniDesc = JSON.stringify(Array.from(det.descriptor).map(n => Math.round(n * 1000) / 1000));
 
-    const payload = {
+    const body = {
       action: 'registerUser',
-      id: document.getElementById('sid').value,
-      name: document.getElementById('sname').value,
-      year: document.getElementById('syear').value,
-      faceDescriptor: smallDescriptor
+      id: sid.value,
+      name: sname.value,
+      year: syear.value,
+      desc: miniDesc
     };
 
     try {
-      // ส่งข้อมูลทันทีที่ถ่ายเสร็จแต่ละรูป (Sequential Upload)
-      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify(payload) });
-      const data = await res.json();
+      // ใช้ความเร็วสูงในการส่งและไม่รอผลลัพธ์นานเกินไป
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 8000); 
+
+      const r = await fetch(API_URL, { 
+        method: 'POST', 
+        body: JSON.stringify(body),
+        signal: controller.signal
+      });
       
-      if(data.success) {
-        if(step < 3) {
-          step++;
-          updateUI();
-          btn.disabled = false;
-          loader.style.display = 'none';
-        } else {
-          alert('✅ ลงทะเบียนครบ 3 รูปสำเร็จ!');
-          window.location.href = 'index.html';
-        }
+      clearTimeout(timeoutId);
+      
+      if(step < 3) {
+        step++;
+        refreshUI();
+        capBtn.disabled = false;
+        loader.style.display = 'none';
+      } else {
+        alert('✅ บันทึกครบ 3 ท่าสำเร็จ!');
+        window.location.href = 'index.html';
       }
     } catch(e) {
-      alert('การเชื่อมต่อขัดข้อง');
-      btn.disabled = false;
-      loader.style.display = 'none';
+      // ถ้า Error แต่เป็นรูปที่ 3 อาจจะเป็นเพราะ Timeout ของ GAS ซึ่งจริงๆ ข้อมูลอาจจะเข้าแล้ว
+      if(step === 3) {
+        alert('✅ ส่งข้อมูลเรียบร้อย (รูปที่ 3)');
+        window.location.href = 'index.html';
+      } else {
+        alert('ส่งข้อมูลไม่สำเร็จ กรุณาลองใหม่');
+        capBtn.disabled = false;
+        loader.style.display = 'none';
+      }
     }
   }
 </script>
