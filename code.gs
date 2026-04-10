@@ -1,68 +1,67 @@
 // ============================================================
-//  GOOGLE APPS SCRIPT — Fixed Column Mapping (v3.5)
+//  GOOGLE APPS SCRIPT — API Backend for Smart Face Scanner
 // ============================================================
 
 function doGet(e) {
   checkAndInitSheets();
   const action = e.parameter.action;
-  if (action === 'getConfig') return jsonResponse(getConfig());
-  if (action === 'getKnownFaces') return jsonResponse(getKnownFaces());
-  if (action === 'getSubjects') return jsonResponse(getSubjects());
-  if (action === 'getStudents') return jsonResponse(getStudents());
-  if (action === 'getAttendanceReport') return jsonResponse(getAttendanceReport());
-  return jsonResponse({ error: 'Unknown GET action' });
+  let result;
+  try {
+    switch (action) {
+      case 'getConfig': result = getConfig(); break;
+      case 'getKnownFaces': result = getKnownFaces(); break;
+      case 'getSubjects': result = getSubjects(); break;
+      case 'getStudents': result = getStudents(); break;
+      case 'getAttendanceReport': result = getAttendanceReport(); break;
+      default: result = { error: 'Unknown GET action' };
+    }
+  } catch (err) {
+    result = { error: err.toString() };
+  }
+  return jsonResponse(result);
 }
 
 function doPost(e) {
   checkAndInitSheets();
   let data;
-  try { data = JSON.parse(e.postData.contents); } catch (err) { return jsonResponse({ error: 'Invalid JSON' }); }
-  
+  try {
+    data = JSON.parse(e.postData.contents);
+  } catch (err) {
+    return jsonResponse({ error: 'Invalid JSON' });
+  }
+
   const action = data.action;
-  if (action === 'registerUser') return jsonResponse(registerUser(data.name, data.faceDescriptor));
-  if (action === 'logAttendance') return jsonResponse(logAttendance(data.name, data.subject, data.lat, data.lng));
-  if (action === 'saveConfig') return jsonResponse(saveConfig(data.lat, data.lng, data.radius));
-  if (action === 'addSubject') return jsonResponse(addSubject(data.subjectName, data.subjectCode));
-  if (action === 'deleteSubject') return jsonResponse(deleteSubject(data.subjectCode));
-  if (action === 'deleteStudent') return jsonResponse(deleteStudent(data.name));
-  return jsonResponse({ error: 'Unknown POST action' });
+  let result;
+  try {
+    switch (action) {
+      case 'registerUser': result = registerUser(data.name, data.faceDescriptor); break;
+      case 'logAttendance': result = logAttendance(data.name, data.subject, data.lat, data.lng); break;
+      case 'saveConfig': result = saveConfig(data.lat, data.lng, data.radius); break;
+      case 'addSubject': result = addSubject(data.subjectName, data.subjectCode); break;
+      case 'deleteSubject': result = deleteSubject(data.subjectCode); break;
+      case 'deleteStudent': result = deleteStudent(data.name); break;
+      default: result = { error: 'Unknown POST action' };
+    }
+  } catch (err) {
+    result = { error: err.toString() };
+  }
+  return jsonResponse(result);
 }
 
 function jsonResponse(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
-function checkAndInitSheets() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  // กำหนดลำดับคอลัมน์ให้ชัดเจน
-  const sheets = {
-    'Users': ['Name', 'Descriptor', 'RegDate'],
-    'Subjects': ['Code', 'Name'],
-    'Attendance': ['Name', 'Subject', 'Time', 'Date', 'Lat', 'Lng', 'Map'],
-    'Config': ['Param', 'Value']
-  };
-  
-  for (let name in sheets) {
-    let sheet = ss.getSheetByName(name);
-    if (!sheet) {
-      sheet = ss.insertSheet(name);
-      sheet.appendRow(sheets[name]);
-      sheet.getRange(1, 1, 1, sheets[name].length).setFontWeight("bold").setBackground("#f3f3f3");
-    }
-  }
-}
-
+// --- บันทึกการเข้าเรียน (จัดลำดับคอลัมน์ให้ตรงกันเป๊ะ) ---
 function logAttendance(name, subject, lat, lng) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Attendance');
   const now = new Date();
-  
-  // ปรับเวลาเป็นประเทศไทย (GMT+7)
   const timeStr = Utilities.formatDate(now, "GMT+7", "HH:mm:ss");
   const dateStr = Utilities.formatDate(now, "GMT+7", "yyyy-MM-dd");
   const mapLink = (lat && lng) ? `https://www.google.com/maps?q=${lat},${lng}` : '-';
 
-  // บันทึกเรียงตามหัวข้อ: Name, Subject, Time, Date, Lat, Lng, Map
+  // คอลัมน์: Name (A), Subject (B), Time (C), Date (D), Lat (E), Lng (F), Map (G)
   sheet.appendRow([
     String(name), 
     String(subject || "ทั่วไป"), 
@@ -75,19 +74,35 @@ function logAttendance(name, subject, lat, lng) {
   return { success: true, message: 'บันทึกสำเร็จ' };
 }
 
-function getAttendanceReport() {
+// --- ตรวจสอบและสร้าง Sheet ---
+function checkAndInitSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('Attendance');
+  const sheetsDef = {
+    'Users': ['Name', 'Descriptor', 'RegDate'],
+    'Subjects': ['Code', 'Name'],
+    'Attendance': ['Name', 'Subject', 'Time', 'Date', 'Lat', 'Lng', 'Map'],
+    'Config': ['Param', 'Value']
+  };
+  
+  for (let sName in sheetsDef) {
+    let sheet = ss.getSheetByName(sName);
+    if (!sheet) {
+      sheet = ss.insertSheet(sName);
+      sheet.appendRow(sheetsDef[sName]);
+      sheet.getRange(1, 1, 1, sheetsDef[sName].length).setFontWeight("bold").setBackground("#f0f0f0");
+    }
+  }
+}
+
+// --- ฟังก์ชันช่วยเหลืออื่นๆ ---
+function getKnownFaces() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Users');
   if (!sheet) return [];
-  const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return [];
-  const headers = data[0];
-  // ส่งข้อมูลกลับแบบ Object โดยอ้างอิงจากหัวตาราง
-  return data.slice(1).reverse().map(r => {
-    let obj = {};
-    headers.forEach((h, i) => obj[h] = r[i]);
-    return obj;
-  });
+  return sheet.getDataRange().getValues().slice(1).map(r => ({ 
+    name: r[0], 
+    descriptor: JSON.parse(r[1]) 
+  }));
 }
 
 function getSubjects() {
@@ -97,18 +112,44 @@ function getSubjects() {
   return sheet.getDataRange().getValues().slice(1).map(r => ({ code: r[0], name: r[1] }));
 }
 
-function getKnownFaces() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('Users');
-  if (!sheet) return [];
-  return sheet.getDataRange().getValues().slice(1).map(r => ({ name: r[0], descriptor: JSON.parse(r[1]) }));
-}
-
 function registerUser(name, descriptor) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Users');
   sheet.appendRow([name, JSON.stringify(descriptor), new Date()]);
   return { success: true };
+}
+
+function saveConfig(lat, lng, radius) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Config');
+  sheet.getRange("B2").setValue(lat);
+  sheet.getRange("B3").setValue(lng);
+  sheet.getRange("B4").setValue(radius);
+  return { success: true };
+}
+
+function getConfig() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Config');
+  const d = sheet.getDataRange().getValues();
+  return { 
+    lat: d[1] ? d[1][1] : 0, 
+    lng: d[2] ? d[2][1] : 0, 
+    radius: d[3] ? d[3][1] : 0.5 
+  };
+}
+
+function getAttendanceReport() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Attendance');
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  return data.slice(1).reverse().map(r => {
+    let obj = {};
+    headers.forEach((h, i) => obj[h] = r[i]);
+    return obj;
+  });
 }
 
 function getStudents() {
@@ -143,20 +184,4 @@ function deleteStudent(name) {
     if (data[i][0] == name) { sheet.deleteRow(i+1); return { success: true }; }
   }
   return { error: 'Not found' };
-}
-
-function saveConfig(lat, lng, radius) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('Config');
-  sheet.getRange("B2").setValue(lat);
-  sheet.getRange("B3").setValue(lng);
-  sheet.getRange("B4").setValue(radius);
-  return { success: true };
-}
-
-function getConfig() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('Config');
-  const d = sheet.getDataRange().getValues();
-  return { lat: d[1][1], lng: d[2][1], radius: d[3][1] };
 }
