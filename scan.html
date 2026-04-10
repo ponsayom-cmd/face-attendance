@@ -3,225 +3,113 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ระบบสแกนใบหน้าอัจฉริยะ (Auto Check-in)</title>
+  <title>ระบบเช็คชื่อ - Smart Scanner</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.js"></script>
   <style>
-    :root { --primary: #6366f1; --success: #10b981; --bg: #0f172a; --card: #1e293b; }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Sarabun', sans-serif; background: var(--bg); color: white; display: flex; flex-direction: column; align-items: center; padding: 15px; }
-
-    .container { max-width: 500px; width: 100%; text-align: center; }
-    .header { margin-bottom: 15px; }
-    .header h1 { font-size: 22px; color: #fff; }
-    
-    /* กล่องวิดีโอและกรอบสแกน */
-    .scanner-viewport {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 4/3;
-      background: #000;
-      border-radius: 20px;
-      overflow: hidden;
-      border: 3px solid #334155;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.4);
-    }
+    :root { --primary: #6366f1; --accent: #10b981; --warning: #f59e0b; --bg: #0f172a; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; }
+    body { background: var(--bg); color: white; display: flex; flex-direction: column; align-items: center; padding: 15px; }
+    .container { width: 100%; max-width: 450px; background: #1e293b; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    .cam-box { width: 100%; aspect-ratio: 1/1; background: #000; border-radius: 15px; overflow: hidden; position: relative; border: 2px solid #334155; margin-bottom: 15px; }
     video { width: 100%; height: 100%; object-fit: cover; }
-    canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-
-    /* ป้ายชื่อที่แสดงบนกรอบ (Floating Badge) */
-    .name-tag {
-      position: absolute;
-      top: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(16, 185, 129, 0.9);
-      padding: 8px 20px;
-      border-radius: 30px;
-      font-weight: 600;
-      font-size: 16px;
-      display: none; /* ซ่อนไว้ก่อนจนกว่าจะเจอหน้า */
-      z-index: 10;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      animation: fadeIn 0.3s ease;
-    }
-    @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
-
-    /* เส้น Laser วิ่ง */
-    .laser {
-      position: absolute;
-      width: 100%; height: 3px; background: var(--primary);
-      box-shadow: 0 0 15px var(--primary);
-      z-index: 5; top: 0; animation: laserMove 2.5s infinite linear;
-    }
-    @keyframes laserMove { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
-
-    .controls { margin-top: 20px; width: 100%; }
-    select {
-      width: 100%; padding: 15px; border-radius: 12px;
-      background: var(--card); color: white; border: 1px solid #475569;
-      font-family: inherit; font-size: 16px; margin-bottom: 15px;
-    }
-
-    .info-box {
-      background: rgba(99, 102, 241, 0.1);
-      border: 1px solid rgba(99, 102, 241, 0.3);
-      padding: 12px; border-radius: 12px; font-size: 13px; color: #94a3b8;
-    }
-
-    .btn-back { display: block; margin-top: 20px; color: #64748b; text-decoration: none; font-size: 14px; }
+    canvas { position: absolute; top: 0; left: 0; }
+    .info { text-align: center; margin-bottom: 10px; }
+    .status-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 10px; }
+    .status-ok { background: rgba(16, 185, 129, 0.2); color: var(--accent); }
+    .status-wait { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
+    .log-box { width: 100%; max-height: 150px; overflow-y: auto; background: #0f172a; border-radius: 10px; padding: 10px; font-size: 13px; margin-top: 10px; }
+    .log-item { border-bottom: 1px solid #1e293b; padding: 5px 0; display: flex; justify-content: space-between; }
+    .log-item:last-child { border: none; }
+    .duplicate { color: var(--warning); font-style: italic; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="header">
-    <h1>ระบบสแกนอัตโนมัติ</h1>
-    <p id="statusTxt">⏳ กำลังเตรียมระบบ AI...</p>
+  <div class="info">
+    <h2 id="subjectName">กำลังโหลดวิชา...</h2>
+    <div id="status" class="status-badge status-wait">⌛ กำลังโหลดระบบ AI...</div>
   </div>
 
-  <div class="scanner-viewport">
-    <div class="laser"></div>
-    <div class="name-tag" id="nameTag">ตรวจพบ: <span id="targetName">-</span></div>
+  <div class="cam-box">
     <video id="video" autoplay muted playsinline></video>
     <canvas id="overlay"></canvas>
   </div>
 
-  <div class="controls">
-    <select id="subjectSelect">
-      <option value="">-- กรุณาเลือกวิชาที่เข้าเรียน --</option>
-    </select>
-
-    <div class="info-box" id="infoBox">
-      💡 ระบบจะเช็คชื่อให้โดยอัตโนมัติเมื่อเลือกวิชาและกล้องจำใบหน้าได้แม่นยำ
-    </div>
+  <div id="result" style="text-align:center; font-weight:bold; font-size:18px; min-height:28px;"></div>
+  
+  <div class="log-box" id="logBox">
+    <div style="color:#94a3b8; margin-bottom:5px;">ประวัติการสแกนล่าสุด:</div>
   </div>
-
-  <a href="index.html" class="btn-back">← กลับหน้าหลัก</a>
 </div>
 
 <script>
   const API_URL = localStorage.getItem('gasApiUrl');
-  const video = document.getElementById('video');
-  const canvas = document.getElementById('overlay');
-  const nameTag = document.getElementById('nameTag');
-  const targetName = document.getElementById('targetName');
-  const statusTxt = document.getElementById('statusTxt');
-  const subjectSelect = document.getElementById('subjectSelect');
+  const currentSub = localStorage.getItem('currentSubject') || "ทั่วไป";
+  let faceMatcher;
+  let isProcessing = false;
+  let geo = { lat: 0, lng: 0 };
 
-  let knownFaces = [];
-  let currentPos = { lat: 0, lng: 0 };
-  let isProcessing = false; // กันการส่งซ้ำ
-  let lastDetectedName = "";
-  let detectionCount = 0; // ต้องเจอหน้าเดิมซ้ำๆ เพื่อความชัวร์
+  document.getElementById('subjectName').innerText = "วิชา: " + currentSub;
 
-  async function start() {
-    if (!API_URL) return alert('กรุณาตั้งค่า API URL ก่อน');
-
+  async function init() {
+    navigator.geolocation.getCurrentPosition(p => { geo.lat = p.coords.latitude; geo.lng = p.coords.longitude; });
+    
     try {
-      // 1. Load Models
-      statusTxt.innerText = '⏳ โหลด AI Models...';
-      const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
       await Promise.all([
-        faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
-        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+        faceapi.nets.ssdMobilenetv1.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
+        faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
+        faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model')
       ]);
 
-      // 2. Fetch Data
-      statusTxt.innerText = '⏳ ดึงฐานข้อมูลนักศึกษา...';
-      const [faces, subjects] = await Promise.all([
-        fetch(`${API_URL}?action=getKnownFaces`).then(r => r.json()),
-        fetch(`${API_URL}?action=getSubjects`).then(r => r.json())
-      ]);
+      const res = await fetch(`${API_URL}?action=getKnownFaces`);
+      const knownData = await res.json();
+      
+      if(knownData.length === 0) {
+        document.getElementById('status').innerText = "❌ ยังไม่มีข้อมูลนักศึกษา";
+        return;
+      }
 
-      knownFaces = faces;
-      subjects.forEach(s => {
-        let opt = document.createElement('option');
-        opt.value = s.name;
-        opt.innerText = `${s.code} - ${s.name}`;
-        subjectSelect.appendChild(opt);
-      });
+      const descriptors = knownData.map(d => new faceapi.LabeledFaceDescriptors(d.name, [new Float32Array(d.descriptor)]));
+      faceMatcher = new faceapi.FaceMatcher(descriptors, 0.6);
 
-      // 3. Start Video
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
       video.srcObject = stream;
-
-      // 4. Get Location
-      navigator.geolocation.getCurrentPosition(p => {
-        currentPos = { lat: p.coords.latitude, lng: p.coords.longitude };
-      });
-
-      video.addEventListener('play', () => {
-        statusTxt.innerText = '✅ ระบบพร้อมสแกน';
-        runFaceAI();
-      });
-
-    } catch (err) {
-      statusTxt.innerText = '❌ ผิดพลาด: ' + err.message;
-    }
+      video.onplay = () => {
+        document.getElementById('status').innerText = "✅ ระบบพร้อมเช็คชื่อ";
+        document.getElementById('status').className = "status-badge status-ok";
+        startDetection();
+      };
+    } catch(e) { console.error(e); }
   }
 
-  async function runFaceAI() {
+  async function startDetection() {
+    const canvas = document.getElementById('overlay');
     const displaySize = { width: video.videoWidth, height: video.videoHeight };
     faceapi.matchDimensions(canvas, displaySize);
 
     setInterval(async () => {
-      if (isProcessing) return; // หยุดถ้ากำลังส่งข้อมูล
+      if(isProcessing) return;
+      
+      const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
+      const resized = faceapi.resizeResults(detections, displaySize);
+      canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+      
+      faceapi.draw.drawDetections(canvas, resized);
 
-      const detections = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      if (detections) {
-        const resized = faceapi.resizeResults(detections, displaySize);
-        
-        // 1. วาดกรอบสี่เหลี่ยมขยับตามหน้า
-        const box = resized.detection.box;
-        ctx.strokeStyle = '#6366f1';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(box.x, box.y, box.width, box.height);
-
-        // 2. เปรียบเทียบใบหน้า
-        if (knownFaces.length > 0) {
-          const descriptors = knownFaces.map(f => new faceapi.LabeledFaceDescriptors(f.name, [new Float32Array(f.descriptor)]));
-          const matcher = new faceapi.FaceMatcher(descriptors, 0.55); // 0.55 = ความแม่นยำ
-          const bestMatch = matcher.findBestMatch(detections.descriptor);
-
-          if (bestMatch.label !== 'unknown') {
-            nameTag.style.display = 'block';
-            targetName.innerText = bestMatch.label;
-
-            // 3. Logic Auto Check-in (ถ้าเจอชื่อเดิมติดกัน 3 รอบ และเลือกวิชาแล้ว)
-            if (bestMatch.label === lastDetectedName) {
-              detectionCount++;
-              if (detectionCount >= 3) {
-                const sub = subjectSelect.value;
-                if (sub) {
-                  autoLogAttendance(bestMatch.label, sub);
-                } else {
-                  statusTxt.innerText = '⚠️ โปรดเลือกวิชาก่อนเช็คชื่อ';
-                }
-              }
-            } else {
-              lastDetectedName = bestMatch.label;
-              detectionCount = 0;
-            }
-          } else {
-            nameTag.style.display = 'none';
-            detectionCount = 0;
-          }
+      if(detections.length > 0) {
+        const bestMatch = faceMatcher.findBestMatch(detections[0].descriptor);
+        if(bestMatch.label !== 'unknown' && bestMatch.distance < 0.45) {
+          handleAttendance(bestMatch.label);
         }
-      } else {
-        nameTag.style.display = 'none';
-        detectionCount = 0;
       }
-    }, 200);
+    }, 1000);
   }
 
-  async function autoLogAttendance(name, subject) {
+  async function handleAttendance(name) {
     isProcessing = true;
-    statusTxt.innerText = `⏳ กำลังบันทึกชื่อ: ${name}...`;
+    document.getElementById('result').innerText = "กำลังตรวจสอบ: " + name;
     
     try {
       const res = await fetch(API_URL, {
@@ -229,26 +117,40 @@
         body: JSON.stringify({
           action: 'logAttendance',
           name: name,
-          subject: subject,
-          lat: currentPos.lat,
-          lng: currentPos.lng
+          subject: currentSub,
+          lat: geo.lat,
+          lng: geo.lng
         })
       });
       const data = await res.json();
-      if (data.success) {
-        statusTxt.innerText = '✅ บันทึกสำเร็จ! กำลังกลับหน้าหลัก...';
-        // ทำเอฟเฟกต์ไฟเขียวแวบหนึ่งก่อนไป
-        nameTag.style.background = '#059669'; 
-        setTimeout(() => window.location.href = 'index.html', 1500);
+      
+      const logBox = document.getElementById('logBox');
+      const time = new Date().toLocaleTimeString();
+      const item = document.createElement('div');
+      item.className = 'log-item';
+      
+      if(data.success) {
+        document.getElementById('result').innerHTML = `<span style="color:var(--accent)">ยินดีต้อนรับ ${name}!</span>`;
+        item.innerHTML = `<span>${name}</span> <span style="color:var(--accent)">เช็คชื่อสำเร็จ (${time})</span>`;
+      } else {
+        document.getElementById('result').innerHTML = `<span style="color:var(--warning)">${name} เช็คชื่อไปแล้ว</span>`;
+        item.innerHTML = `<span>${name}</span> <span class="duplicate">เช็คซ้ำ (${time})</span>`;
       }
-    } catch (e) {
-      alert('บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง');
+      
+      logBox.prepend(item);
+      
+      // หน่วงเวลา 3 วินาทีก่อนรับคนถัดไป
+      setTimeout(() => {
+        isProcessing = false;
+        document.getElementById('result').innerText = "";
+      }, 3000);
+
+    } catch(e) {
       isProcessing = false;
-      detectionCount = 0;
     }
   }
 
-  start();
+  window.onload = init;
 </script>
 </body>
 </html>
