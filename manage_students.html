@@ -3,75 +3,126 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>จัดการรายชื่อนักศึกษา</title>
+  <title>รายชื่อนักศึกษา v6.9</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
     :root { --p: #6366f1; --bg: #f8fafc; --err: #ef4444; }
-    body { font-family: 'Sarabun', sans-serif; background: var(--bg); padding: 20px; margin: 0; }
+    body { font-family: 'Sarabun', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #1e293b; }
     .container { max-width: 800px; margin: 0 auto; }
-    .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 500px; }
-    th { text-align: left; padding: 12px; background: #f8fafc; color: #64748b; font-size: 13px; }
-    td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
-    .badge { padding: 3px 8px; border-radius: 8px; background: #e0e7ff; color: #4338ca; font-size: 11px; font-weight: bold; }
-    .btn-del { color: #cbd5e1; cursor: pointer; border: none; background: none; transition: 0.2s; }
-    .btn-del:hover { color: var(--err); }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .card { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th { text-align: left; padding: 12px; border-bottom: 2px solid #f1f5f9; color: #64748b; font-size: 14px; }
+    td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 15px; }
+    .btn-del { background: #fee2e2; color: var(--err); border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .btn-del:hover { background: var(--err); color: white; }
+    .loader { text-align: center; padding: 40px; color: #64748b; }
+    .badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; background: #e0e7ff; color: #4338ca; }
+    .empty-msg { text-align: center; padding: 40px; color: #94a3b8; }
+    .refresh-btn { background: #fff; border: 1px solid #e2e8f0; padding: 8px 16px; border-radius: 8px; cursor: pointer; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
-      <h2>รายชื่อนักศึกษา 👨‍🎓</h2>
-      <a href="index.html" style="text-decoration:none; color:#64748b; font-size:14px;">← กลับ</a>
-    </div>
 
-    <div class="card">
-      <table>
-        <thead>
-          <tr>
-            <th>รหัส</th>
-            <th>ชื่อ-นามสกุล</th>
-            <th>ชั้นปี</th>
-            <th>สถานะใบหน้า</th>
-            <th>ลบ</th>
-          </tr>
-        </thead>
-        <tbody id="list">
-          <tr><td colspan="5" style="text-align:center;">กำลังโหลด...</td></tr>
-        </tbody>
-      </table>
+<div class="container">
+  <div class="header">
+    <h2 style="margin:0;">รายชื่อนักศึกษาที่ลงทะเบียน</h2>
+    <button class="refresh-btn" onclick="loadStudents()">🔄 รีเฟรชข้อมูล</button>
+  </div>
+
+  <div class="card">
+    <div id="main-content">
+      <div class="loader">กำลังโหลดข้อมูล...</div>
     </div>
   </div>
 
+  <div style="text-align:center; margin-top:20px;">
+    <a href="index.html" style="text-decoration:none; color:#64748b; font-size:14px;">← กลับหน้าหลัก</a>
+  </div>
+</div>
+
 <script>
   const API = localStorage.getItem('gas_v5');
-  window.onload = async () => {
-    if(!API) return location.href = "index.html";
-    const res = await fetch(`${API}?action=getKnownFaces&t=${Date.now()}`);
-    const data = await res.json();
-    const list = document.getElementById('list');
-    list.innerHTML = "";
-    
-    data.forEach(u => {
-      const hasFace = u.descriptor && u.descriptor.length > 0;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><b>${u.id || '-'}</b></td>
-        <td>${u.name}</td>
-        <td>ปี ${u.year || '-'}</td>
-        <td><span class="badge" style="background:${hasFace?'#dcfce7':'#fee2e2'}; color:${hasFace?'#166534':'#991b1b'}">${hasFace?'พร้อม':'ไม่มี'}</span></td>
-        <td><button class="btn-del" onclick="del('${u.name}')"><i class="fas fa-trash-alt"></i></button></td>
-      `;
-      list.appendChild(tr);
-    });
-  };
 
-  async function del(name) {
-    if(!confirm(`ลบ ${name}?`)) return;
-    await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'deleteUser', name }) });
-    location.reload();
+  async function loadStudents() {
+    const container = document.getElementById('main-content');
+    container.innerHTML = '<div class="loader">กำลังเรียกข้อมูลจากระบบ...</div>';
+
+    if (!API) {
+      container.innerHTML = '<div class="empty-msg">❌ ไม่พบ URL ของระบบ (Web App URL)</div>';
+      return;
+    }
+
+    try {
+      // เพิ่ม timestamp (?t=...) เพื่อป้องกัน Cache
+      const response = await fetch(`${API}?action=getKnownFaces&t=${Date.now()}`);
+      const students = await response.json();
+
+      if (!students || students.length === 0) {
+        container.innerHTML = '<div class="empty-msg">ยังไม่มีข้อมูลนักศึกษาในระบบ</div>';
+        return;
+      }
+
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>รหัส</th>
+              <th>ชื่อ-นามสกุล</th>
+              <th>ชั้นปี</th>
+              <th>สถานะใบหน้า</th>
+              <th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      students.forEach(s => {
+        html += `
+          <tr>
+            <td><b>${s.id || '-'}</b></td>
+            <td>${s.name}</td>
+            <td><span class="badge">ปี ${s.year}</span></td>
+            <td style="color:#10b981">✓ พร้อมสแกน</td>
+            <td>
+              <button class="btn-del" onclick="deleteStudent('${s.name}')">ลบ</button>
+            </td>
+          </tr>
+        `;
+      });
+
+      html += `</tbody></table>`;
+      container.innerHTML = html;
+
+    } catch (error) {
+      console.error(error);
+      container.innerHTML = '<div class="empty-msg" style="color:red">เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + error.message + '</div>';
+    }
   }
+
+  async function deleteStudent(name) {
+    if (!confirm(`คุณต้องการลบรายชื่อของ "${name}" ใช่หรือไม่? ข้อมูลใบหน้าจะถูกลบถาวร`)) return;
+
+    try {
+      const response = await fetch(API, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'deleteUser', name: name })
+      });
+      const result = await response.json();
+      if (result.success) {
+        alert("ลบข้อมูลสำเร็จ");
+        loadStudents();
+      } else {
+        alert("ลบไม่สำเร็จ: " + result.message);
+      }
+    } catch (error) {
+      alert("เกิดข้อผิดพลาดในการส่งคำสั่งลบ");
+    }
+  }
+
+  // โหลดข้อมูลเมื่อเปิดหน้า
+  window.onload = loadStudents;
 </script>
+
 </body>
 </html>
