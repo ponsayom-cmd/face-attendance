@@ -8,108 +8,44 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
     :root {
-      --primary: #7c9cf8; /* ฟ้าพาสเทล */
+      --primary: #7c9cf8;
       --secondary: #a5b4fc;
-      --accent: #6ee7b7; /* เขียวมินต์ */
-      --bg: #f8fafc; /* ขาวนวล */
+      --accent: #6ee7b7;
+      --bg: #f8fafc;
       --card: #ffffff;
       --text-main: #334155;
       --text-sub: #64748b;
       --border: #f1f5f9;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; }
-    
-    body { 
-      background-color: var(--bg); 
-      color: var(--text-main); 
-      padding-bottom: 90px;
-      background-image: radial-gradient(at 0% 0%, hsla(225,39%,95%,1) 0, transparent 50%), 
-                        radial-gradient(at 50% 0%, hsla(225,39%,95%,1) 0, transparent 50%);
-    }
-
-    /* Navigation Bar */
-    .nav-bottom { 
-      position: fixed; bottom: 15px; left: 15px; right: 15px; 
-      background: rgba(255, 255, 255, 0.9); 
-      backdrop-filter: blur(10px);
-      display: flex; justify-content: space-around; 
-      padding: 12px; border-radius: 25px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-      border: 1px solid var(--border);
-      z-index: 1000; 
-    }
-    .nav-item { 
-      color: var(--text-sub); text-decoration: none; text-align: center; 
-      font-size: 11px; cursor: pointer; flex: 1; transition: 0.3s;
-    }
+    body { background-color: var(--bg); color: var(--text-main); padding-bottom: 90px; }
+    .nav-bottom { position: fixed; bottom: 15px; left: 15px; right: 15px; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); display: flex; justify-content: space-around; padding: 12px; border-radius: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid var(--border); z-index: 1000; }
+    .nav-item { color: var(--text-sub); text-decoration: none; text-align: center; font-size: 11px; cursor: pointer; flex: 1; transition: 0.3s; }
     .nav-item.active { color: var(--primary); font-weight: 600; }
     .nav-item i { font-size: 22px; display: block; margin-bottom: 4px; }
-
-    /* Content Area */
     .page { display: none; padding: 25px 20px; max-width: 500px; margin: 0 auto; }
     .page.active { display: block; animation: slideUp 0.4s ease-out; }
     @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
     .header-section { margin-bottom: 25px; }
     .header-section h1 { font-size: 24px; font-weight: 700; color: var(--text-main); }
     .header-section p { color: var(--text-sub); font-size: 14px; }
-
-    .card { 
-      background: var(--card); border-radius: 24px; padding: 25px; 
-      margin-bottom: 20px; border: 1px solid var(--border);
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
-
-    /* Inputs & Selects */
+    .card { background: var(--card); border-radius: 24px; padding: 25px; margin-bottom: 20px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
     label { display: block; font-size: 13px; font-weight: 600; color: var(--text-sub); margin-bottom: 8px; margin-left: 5px; }
-    input, select { 
-      width: 100%; padding: 14px 18px; border-radius: 16px; 
-      background: #fdfdfd; border: 1px solid var(--border); 
-      color: var(--text-main); margin-bottom: 15px; outline: none; 
-      transition: 0.3s; font-size: 15px;
-    }
-    input:focus, select:focus { border-color: var(--primary); background: #fff; box-shadow: 0 0 0 4px rgba(124, 156, 248, 0.1); }
-
-    /* Buttons */
-    .btn { 
-      padding: 16px 24px; border-radius: 18px; border: none; 
-      font-weight: 700; cursor: pointer; transition: 0.3s; 
-      display: inline-flex; align-items: center; gap: 10px; font-size: 15px; 
-    }
-    .btn-primary { 
-      background: linear-gradient(135deg, var(--primary), var(--secondary)); 
-      color: white; width: 100%; justify-content: center;
-      box-shadow: 0 8px 20px rgba(124, 156, 248, 0.3);
-    }
-    .btn-primary:active { transform: scale(0.98); }
-    
-    .btn-outline { 
-      background: white; border: 1px solid var(--border); color: var(--text-sub); 
-      font-size: 13px; padding: 10px 15px; border-radius: 12px;
-    }
-
-    /* Table Design */
+    input, select { width: 100%; padding: 14px 18px; border-radius: 16px; background: #fdfdfd; border: 1px solid var(--border); color: var(--text-main); margin-bottom: 15px; outline: none; transition: 0.3s; font-size: 15px; }
+    .btn { padding: 16px 24px; border-radius: 18px; border: none; font-weight: 700; cursor: pointer; transition: 0.3s; display: inline-flex; align-items: center; gap: 10px; font-size: 15px; }
+    .btn-primary { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; width: 100%; justify-content: center; box-shadow: 0 8px 20px rgba(124, 156, 248, 0.3); }
+    .btn-outline { background: white; border: 1px solid var(--border); color: var(--text-sub); font-size: 13px; padding: 10px 15px; border-radius: 12px; }
     .data-table-container { overflow-x: auto; }
     .data-table { width: 100%; border-collapse: collapse; }
     .data-table th { text-align: left; padding: 12px; font-size: 12px; color: var(--text-sub); border-bottom: 1px solid var(--border); }
     .data-table td { padding: 15px 12px; font-size: 14px; border-bottom: 1px solid var(--border); }
-    
     .badge { padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; }
     .badge-success { background: #ecfdf5; color: #10b981; }
-
     .empty-state { text-align: center; padding: 40px 20px; color: var(--text-sub); }
     .empty-state i { font-size: 40px; margin-bottom: 10px; opacity: 0.3; }
-
-    /* Floating Action Button for Register */
-    .fab {
-      position: fixed; bottom: 100px; right: 20px;
-      width: 56px; height: 56px; border-radius: 28px;
-      background: var(--accent); color: white;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 10px 20px rgba(110, 231, 183, 0.4);
-      text-decoration: none; font-size: 24px; z-index: 999;
-    }
+    .fab { position: fixed; bottom: 100px; right: 20px; width: 56px; height: 56px; border-radius: 28px; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(110, 231, 183, 0.4); text-decoration: none; font-size: 24px; z-index: 999; }
+    .loading-spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(124,156,248,.3); border-radius: 50%; border-top-color: var(--primary); animation: spin 1s ease-in-out infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -120,19 +56,15 @@
       <h1>สวัสดีครับ 👋</h1>
       <p>พร้อมเริ่มเช็คชื่อนักศึกษาหรือยัง?</p>
     </div>
-    
     <div class="card">
       <label><i class="fas fa-graduation-cap"></i> เลือกรายวิชา</label>
-      <select id="subjectSelect">
-        <option value="">กำลังโหลดวิชา...</option>
-      </select>
+      <select id="subjectSelect"><option value="">กำลังโหลดวิชา...</option></select>
       <button class="btn btn-primary" onclick="goToScan()">
         <i class="fas fa-camera"></i> เปิดกล้องสแกนใบหน้า
       </button>
     </div>
-
     <div class="card" style="padding: 15px;">
-      <label style="margin-bottom: 5px;">ตั้งค่าการเชื่อมต่อ (GAS)</label>
+      <label>ตั้งค่าการเชื่อมต่อ (GAS)</label>
       <input type="text" id="apiUrl" placeholder="วาง Web App URL" onchange="saveConfig()" style="font-size: 12px; margin-bottom: 0;">
       <div id="apiStatus" style="font-size: 11px; margin-top: 8px; text-align: center;"></div>
     </div>
@@ -148,12 +80,10 @@
       <div class="data-table-container">
         <table class="data-table" id="userTable">
           <thead><tr><th>ชื่อ-นามสกุล</th><th style="text-align:right">จัดการ</th></tr></thead>
-          <tbody></tbody>
+          <tbody id="userBody"></tbody>
         </table>
       </div>
-      <div id="userEmpty" class="empty-state" style="display:none">
-        <i class="fas fa-user-slash"></i><p>ยังไม่มีนักศึกษาในระบบ</p>
-      </div>
+      <div id="userEmpty" class="empty-state"><i class="fas fa-user-slash"></i><p>ยังไม่มีข้อมูลนักศึกษา</p></div>
     </div>
     <a href="register.html" class="fab"><i class="fas fa-plus"></i></a>
   </div>
@@ -168,12 +98,10 @@
       <div class="data-table-container">
         <table class="data-table" id="reportTable">
           <thead><tr><th>ชื่อ</th><th>วิชา</th><th>เวลา</th></tr></thead>
-          <tbody></tbody>
+          <tbody id="reportBody"></tbody>
         </table>
       </div>
-      <div id="reportEmpty" class="empty-state" style="display:none">
-        <i class="fas fa-clipboard-list"></i><p>ยังไม่มีประวัติการเช็คชื่อ</p>
-      </div>
+      <div id="reportEmpty" class="empty-state"><i class="fas fa-clipboard-list"></i><p>ยังไม่มีประวัติการเช็คชื่อ</p></div>
     </div>
   </div>
 
@@ -200,7 +128,6 @@
     </div>
   </div>
 
-  <!-- Bottom Nav -->
   <nav class="nav-bottom">
     <div class="nav-item active" onclick="showPage('home')"><i class="fas fa-th-large"></i>หน้าหลัก</div>
     <div class="nav-item" onclick="showPage('users')"><i class="fas fa-user-friends"></i>นักศึกษา</div>
@@ -215,7 +142,8 @@
   function showPage(id) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
+    const target = document.getElementById(id);
+    target.classList.add('active');
     event.currentTarget.classList.add('active');
     
     if(id === 'users') loadUsers();
@@ -229,90 +157,76 @@
       const res = await fetch(API_URL + '?action=getSubjects');
       const data = await res.json();
       const select = document.getElementById('subjectSelect');
-      const table = document.querySelector('#subjectTable tbody');
-      
-      select.innerHTML = '<option value="">-- เลือกวิชาที่เข้าสอน --</option>';
-      table.innerHTML = '';
-      
-      if(data.length > 0) {
-        data.forEach(s => {
-          select.innerHTML += `<option value="${s.name}">${s.code} ${s.name}</option>`;
-          table.innerHTML += `<tr><td><b>${s.code}</b></td><td>${s.name}</td></tr>`;
-        });
-        updateApiStatus(true, 'เชื่อมต่อปกติ');
-      } else {
-        select.innerHTML = '<option value="">ไม่มีข้อมูลวิชา</option>';
-        updateApiStatus(true, 'เชื่อมต่อแล้ว แต่ไม่มีข้อมูลวิชา');
-      }
-    } catch(e) { updateApiStatus(false, 'URL ไม่ถูกต้องหรือเซิร์ฟเวอร์ปิดอยู่'); }
+      const tbody = document.querySelector('#subjectTable tbody');
+      select.innerHTML = '<option value="">-- เลือกวิชา --</option>';
+      tbody.innerHTML = '';
+      data.forEach(s => {
+        select.innerHTML += `<option value="${s.name}">${s.code} ${s.name}</option>`;
+        tbody.innerHTML += `<tr><td><b>${s.code}</b></td><td>${s.name}</td></tr>`;
+      });
+      updateApiStatus(true, 'เชื่อมต่อปกติ');
+    } catch(e) { updateApiStatus(false, 'ตรวจสอบ URL อีกครั้ง'); }
   }
 
   async function loadUsers() {
-    if(!API_URL) return;
-    const res = await fetch(API_URL + '?action=getKnownFaces');
-    const data = await res.json();
-    const tbody = document.querySelector('#userTable tbody');
+    const tbody = document.getElementById('userBody');
     const empty = document.getElementById('userEmpty');
-    
-    if(data.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
-    empty.style.display = 'none';
-    tbody.innerHTML = data.map(u => `
-      <tr>
-        <td><b>${u.name}</b><br><span style="font-size:11px;color:#94a3b8">ID: ${u.id || '-'}</span></td>
-        <td style="text-align:right"><button class="btn-outline" style="color:#ef4444" onclick="deleteUser('${u.name}')"><i class="fas fa-trash"></i></button></td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center"><div class="loading-spinner"></div></td></tr>';
+    try {
+      const res = await fetch(API_URL + '?action=getKnownFaces');
+      const data = await res.json();
+      tbody.innerHTML = '';
+      if(!data || data.length === 0) { empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      data.forEach(u => {
+        tbody.innerHTML += `
+          <tr>
+            <td><b>${u.name}</b></td>
+            <td style="text-align:right"><button class="btn-outline" style="color:#ef4444" onclick="deleteUser('${u.name}')"><i class="fas fa-trash"></i></button></td>
+          </tr>`;
+      });
+    } catch(e) { tbody.innerHTML = ''; empty.style.display = 'block'; }
   }
 
   async function loadReports() {
-    if(!API_URL) return;
-    const res = await fetch(API_URL + '?action=getAttendance');
-    const data = await res.json();
-    const tbody = document.querySelector('#reportTable tbody');
+    const tbody = document.getElementById('reportBody');
     const empty = document.getElementById('reportEmpty');
-
-    if(data.length === 0) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
-    empty.style.display = 'none';
-    tbody.innerHTML = data.map(r => `
-      <tr>
-        <td>${r.name}</td>
-        <td><span class="badge badge-success">${r.subject}</span></td>
-        <td style="font-size:11px;color:#94a3b8">${r.date}<br>${r.time}</td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center"><div class="loading-spinner"></div></td></tr>';
+    try {
+      const res = await fetch(API_URL + '?action=getAttendance');
+      const data = await res.json();
+      tbody.innerHTML = '';
+      if(!data || data.length === 0) { empty.style.display = 'block'; return; }
+      empty.style.display = 'none';
+      data.forEach(r => {
+        tbody.innerHTML += `
+          <tr>
+            <td>${r.name}</td>
+            <td><span class="badge badge-success">${r.subject}</span></td>
+            <td style="font-size:11px;color:#94a3b8">${r.date}<br>${r.time}</td>
+          </tr>`;
+      });
+    } catch(e) { tbody.innerHTML = ''; empty.style.display = 'block'; }
   }
 
   async function addSubject() {
     const code = document.getElementById('newSubCode').value;
     const name = document.getElementById('newSubName').value;
-    if(!code || !name) return alert('กรุณากรอกรหัสและชื่อวิชา');
-    
-    try {
-      await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'addSubject', code, name })
-      });
-      document.getElementById('newSubCode').value = '';
-      document.getElementById('newSubName').value = '';
-      loadSubjects();
-      alert('เพิ่มวิชาเรียบร้อย');
-    } catch(e) { alert('เกิดข้อผิดพลาด'); }
+    if(!code || !name) return;
+    await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'addSubject', code, name }) });
+    document.getElementById('newSubCode').value = '';
+    document.getElementById('newSubName').value = '';
+    loadSubjects();
   }
 
   async function deleteUser(name) {
-    if(!confirm(`คุณแน่ใจหรือไม่ที่จะลบรายชื่อ ${name}?`)) return;
-    try {
-      await fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'deleteUser', name: name })
-      });
-      loadUsers();
-    } catch(e) { alert('ลบไม่สำเร็จ'); }
+    if(!confirm(`ลบ ${name}?`)) return;
+    await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteUser', name }) });
+    loadUsers();
   }
 
   function updateApiStatus(isOk, msg) {
-    const el = document.getElementById('apiStatus');
-    el.innerHTML = `<span style="color:${isOk?'#10b981':'#ef4444'}"><i class="fas fa-${isOk?'check-circle':'times-circle'}"></i> ${msg}</span>`;
+    document.getElementById('apiStatus').innerHTML = `<span style="color:${isOk?'#10b981':'#ef4444'}">${msg}</span>`;
   }
 
   function saveConfig() {
@@ -323,7 +237,7 @@
 
   function goToScan() {
     const sub = document.getElementById('subjectSelect').value;
-    if(!sub) return alert('กรุณาเลือกวิชาก่อนเริ่มเช็คชื่อ');
+    if(!sub) return alert('เลือกวิชาก่อนครับ');
     localStorage.setItem('currentSubject', sub);
     window.location.href = 'scan.html';
   }
