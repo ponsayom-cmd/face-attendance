@@ -1,5 +1,5 @@
 // ============================================================
-//  GOOGLE APPS SCRIPT — Fixed Data Mapping Version
+//  GOOGLE APPS SCRIPT — Fixed Column Mapping (v3.5)
 // ============================================================
 
 function doGet(e) {
@@ -32,9 +32,9 @@ function jsonResponse(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
-// --- ตรวจสอบและสร้าง Sheet อัตโนมัติ ---
 function checkAndInitSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
+  // กำหนดลำดับคอลัมน์ให้ชัดเจน
   const sheets = {
     'Users': ['Name', 'Descriptor', 'RegDate'],
     'Subjects': ['Code', 'Name'],
@@ -52,32 +52,48 @@ function checkAndInitSheets() {
   }
 }
 
-// --- บันทึกการเข้าเรียน (FIXED: ตรงคอลัมน์แน่นอน) ---
 function logAttendance(name, subject, lat, lng) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Attendance');
   const now = new Date();
+  
+  // ปรับเวลาเป็นประเทศไทย (GMT+7)
   const timeStr = Utilities.formatDate(now, "GMT+7", "HH:mm:ss");
   const dateStr = Utilities.formatDate(now, "GMT+7", "yyyy-MM-dd");
   const mapLink = (lat && lng) ? `https://www.google.com/maps?q=${lat},${lng}` : '-';
 
-  // ลำดับต้องตรงกับ: Name, Subject, Time, Date, Lat, Lng, Map
+  // บันทึกเรียงตามหัวข้อ: Name, Subject, Time, Date, Lat, Lng, Map
   sheet.appendRow([
-    name, 
-    subject || "ทั่วไป", 
-    timeStr, 
-    "'" + dateStr, 
-    lat || '-', 
-    lng || '-', 
-    mapLink
+    String(name), 
+    String(subject || "ทั่วไป"), 
+    String(timeStr), 
+    "'" + String(dateStr), 
+    String(lat || '-'), 
+    String(lng || '-'), 
+    String(mapLink)
   ]);
-  return { success: true, message: 'บันทึกเวลาสำเร็จ' };
+  return { success: true, message: 'บันทึกสำเร็จ' };
 }
 
-// ฟังก์ชันอื่นๆ (getSubjects, getKnownFaces, etc.) ให้ใช้ตามเวอร์ชัน Auto-Setup ก่อนหน้าที่เสถียรแล้ว
+function getAttendanceReport() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Attendance');
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+  const headers = data[0];
+  // ส่งข้อมูลกลับแบบ Object โดยอ้างอิงจากหัวตาราง
+  return data.slice(1).reverse().map(r => {
+    let obj = {};
+    headers.forEach((h, i) => obj[h] = r[i]);
+    return obj;
+  });
+}
+
 function getSubjects() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Subjects');
+  if (!sheet) return [];
   return sheet.getDataRange().getValues().slice(1).map(r => ({ code: r[0], name: r[1] }));
 }
 
@@ -88,15 +104,59 @@ function getKnownFaces() {
   return sheet.getDataRange().getValues().slice(1).map(r => ({ name: r[0], descriptor: JSON.parse(r[1]) }));
 }
 
-function getAttendanceReport() {
+function registerUser(name, descriptor) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('Attendance');
+  const sheet = ss.getSheetByName('Users');
+  sheet.appendRow([name, JSON.stringify(descriptor), new Date()]);
+  return { success: true };
+}
+
+function getStudents() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Users');
+  if (!sheet) return [];
+  return sheet.getDataRange().getValues().slice(1).map(r => ({ name: r[0], regDate: r[2] }));
+}
+
+function addSubject(name, code) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Subjects');
+  sheet.appendRow([code, name]);
+  return { success: true };
+}
+
+function deleteSubject(code) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Subjects');
   const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return [];
-  const headers = data[0];
-  return data.slice(1).reverse().map(r => {
-    let obj = {};
-    headers.forEach((h, i) => obj[h] = r[i]);
-    return obj;
-  });
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] == code) { sheet.deleteRow(i+1); return { success: true }; }
+  }
+  return { error: 'Not found' };
+}
+
+function deleteStudent(name) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Users');
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] == name) { sheet.deleteRow(i+1); return { success: true }; }
+  }
+  return { error: 'Not found' };
+}
+
+function saveConfig(lat, lng, radius) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Config');
+  sheet.getRange("B2").setValue(lat);
+  sheet.getRange("B3").setValue(lng);
+  sheet.getRange("B4").setValue(radius);
+  return { success: true };
+}
+
+function getConfig() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Config');
+  const d = sheet.getDataRange().getValues();
+  return { lat: d[1][1], lng: d[2][1], radius: d[3][1] };
 }
