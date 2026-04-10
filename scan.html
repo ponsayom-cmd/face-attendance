@@ -3,269 +3,252 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>สแกนใบหน้าอัจฉริยะ - Smart Check-in</title>
+  <title>ระบบสแกนใบหน้าอัจฉริยะ (Auto Check-in)</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.js"></script>
   <style>
-    :root { --primary: #6366f1; --accent: #10b981; --bg: #0f172a; --card: #1e293b; }
+    :root { --primary: #6366f1; --success: #10b981; --bg: #0f172a; --card: #1e293b; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Sarabun', sans-serif; background: var(--bg); color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; overflow-x: hidden; }
+    body { font-family: 'Sarabun', sans-serif; background: var(--bg); color: white; display: flex; flex-direction: column; align-items: center; padding: 15px; }
 
-    .container { max-width: 500px; width: 100%; position: relative; }
-
-    /* Header Styling */
-    .top-info { text-align: center; margin-bottom: 20px; }
-    .top-info h2 { font-size: 24px; color: #fff; }
-    .top-info p { color: #94a3b8; font-size: 14px; }
-
-    /* Scanner Wrapper */
-    .scanner-wrapper {
+    .container { max-width: 500px; width: 100%; text-align: center; }
+    .header { margin-bottom: 15px; }
+    .header h1 { font-size: 22px; color: #fff; }
+    
+    /* กล่องวิดีโอและกรอบสแกน */
+    .scanner-viewport {
       position: relative;
       width: 100%;
       aspect-ratio: 4/3;
       background: #000;
-      border-radius: 24px;
+      border-radius: 20px;
       overflow: hidden;
-      border: 2px solid #334155;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      border: 3px solid #334155;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.4);
     }
     video { width: 100%; height: 100%; object-fit: cover; }
     canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
 
-    /* Scanning Line Animation */
-    .scan-line {
+    /* ป้ายชื่อที่แสดงบนกรอบ (Floating Badge) */
+    .name-tag {
       position: absolute;
-      top: 0; left: 0; width: 100%; height: 4px;
-      background: linear-gradient(to right, transparent, var(--primary), transparent);
-      box-shadow: 0 0 15px var(--primary);
-      z-index: 5;
-      animation: scanMove 3s infinite linear;
-      opacity: 0.7;
-    }
-    @keyframes scanMove { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
-
-    /* Result Overlay */
-    .result-overlay {
-      position: absolute;
-      top: 20px;
+      top: 15px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(8px);
+      background: rgba(16, 185, 129, 0.9);
       padding: 8px 20px;
-      border-radius: 50px;
-      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 30px;
+      font-weight: 600;
+      font-size: 16px;
+      display: none; /* ซ่อนไว้ก่อนจนกว่าจะเจอหน้า */
       z-index: 10;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      transition: 0.3s;
-      opacity: 0;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      animation: fadeIn 0.3s ease;
     }
-    .result-overlay.active { opacity: 1; transform: translateX(-50%) translateY(5px); }
-    .dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; animation: pulse 1s infinite; }
-    @keyframes pulse { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.5); opacity: 0.5; } 100% { transform: scale(1); opacity: 1; } }
+    @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-10px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
 
-    /* Controls */
-    .controls { margin-top: 25px; display: flex; flex-direction: column; gap: 15px; }
+    /* เส้น Laser วิ่ง */
+    .laser {
+      position: absolute;
+      width: 100%; height: 3px; background: var(--primary);
+      box-shadow: 0 0 15px var(--primary);
+      z-index: 5; top: 0; animation: laserMove 2.5s infinite linear;
+    }
+    @keyframes laserMove { 0% { top: 0; } 50% { top: 100%; } 100% { top: 0; } }
+
+    .controls { margin-top: 20px; width: 100%; }
     select {
-      width: 100%; padding: 16px; border-radius: 15px;
-      background: var(--card); color: white; border: 1px solid #334155;
-      font-family: inherit; font-size: 16px; appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-      background-repeat: no-repeat; background-position: right 15px center; background-size: 18px;
+      width: 100%; padding: 15px; border-radius: 12px;
+      background: var(--card); color: white; border: 1px solid #475569;
+      font-family: inherit; font-size: 16px; margin-bottom: 15px;
     }
-    .btn {
-      width: 100%; padding: 18px; border-radius: 15px; border: none;
-      font-weight: 700; font-size: 18px; cursor: pointer; transition: 0.3s;
-      background: var(--primary); color: white;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-    }
-    .btn:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
-    .btn:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3); }
 
-    .footer-links { margin-top: 20px; text-align: center; }
-    .footer-links a { color: #94a3b8; text-decoration: none; font-size: 14px; }
+    .info-box {
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      padding: 12px; border-radius: 12px; font-size: 13px; color: #94a3b8;
+    }
+
+    .btn-back { display: block; margin-top: 20px; color: #64748b; text-decoration: none; font-size: 14px; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="top-info">
-    <h2>สแกนใบหน้าเข้าเรียน</h2>
-    <p id="mainStatus">⏳ กำลังเตรียมความพร้อม AI...</p>
+  <div class="header">
+    <h1>ระบบสแกนอัตโนมัติ</h1>
+    <p id="statusTxt">⏳ กำลังเตรียมระบบ AI...</p>
   </div>
 
-  <div class="scanner-wrapper">
-    <div class="scan-line"></div>
-    <div class="result-overlay" id="nameBadge">
-      <div class="dot"></div>
-      <span id="detectedName">ตรวจจับ...</span>
-    </div>
+  <div class="scanner-viewport">
+    <div class="laser"></div>
+    <div class="name-tag" id="nameTag">ตรวจพบ: <span id="targetName">-</span></div>
     <video id="video" autoplay muted playsinline></video>
     <canvas id="overlay"></canvas>
   </div>
 
   <div class="controls">
     <select id="subjectSelect">
-      <option value="">-- โปรดเลือกรายวิชา --</option>
+      <option value="">-- กรุณาเลือกวิชาที่เข้าเรียน --</option>
     </select>
-    <button class="btn" id="btnConfirm" disabled>
-      <span>รอตรวจจับใบหน้า...</span>
-    </button>
+
+    <div class="info-box" id="infoBox">
+      💡 ระบบจะเช็คชื่อให้โดยอัตโนมัติเมื่อเลือกวิชาและกล้องจำใบหน้าได้แม่นยำ
+    </div>
   </div>
 
-  <div class="footer-links">
-    <a href="index.html">← ยกเลิกและกลับหน้าหลัก</a>
-  </div>
+  <a href="index.html" class="btn-back">← กลับหน้าหลัก</a>
 </div>
 
 <script>
   const API_URL = localStorage.getItem('gasApiUrl');
   const video = document.getElementById('video');
   const canvas = document.getElementById('overlay');
-  const badge = document.getElementById('nameBadge');
-  const nameSpan = document.getElementById('detectedName');
-  const btn = document.getElementById('btnConfirm');
+  const nameTag = document.getElementById('nameTag');
+  const targetName = document.getElementById('targetName');
+  const statusTxt = document.getElementById('statusTxt');
   const subjectSelect = document.getElementById('subjectSelect');
-  const mainStatus = document.getElementById('mainStatus');
 
   let knownFaces = [];
   let currentPos = { lat: 0, lng: 0 };
-  let isScanning = true;
+  let isProcessing = false; // กันการส่งซ้ำ
+  let lastDetectedName = "";
+  let detectionCount = 0; // ต้องเจอหน้าเดิมซ้ำๆ เพื่อความชัวร์
 
-  async function startSystem() {
-    if (!API_URL) return alert('กรุณาตั้งค่า API URL ก่อนใช้งาน');
+  async function start() {
+    if (!API_URL) return alert('กรุณาตั้งค่า API URL ก่อน');
 
     try {
-      // 1. โหลด Models
+      // 1. Load Models
+      statusTxt.innerText = '⏳ โหลด AI Models...';
+      const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
       await Promise.all([
-        faceapi.nets.ssdMobilenetv1.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
-        faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
-        faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model')
+        faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
       ]);
 
-      // 2. ดึงข้อมูล
+      // 2. Fetch Data
+      statusTxt.innerText = '⏳ ดึงฐานข้อมูลนักศึกษา...';
       const [faces, subjects] = await Promise.all([
         fetch(`${API_URL}?action=getKnownFaces`).then(r => r.json()),
         fetch(`${API_URL}?action=getSubjects`).then(r => r.json())
       ]);
-      
+
       knownFaces = faces;
       subjects.forEach(s => {
-        const opt = document.createElement('option');
+        let opt = document.createElement('option');
         opt.value = s.name;
         opt.innerText = `${s.code} - ${s.name}`;
         subjectSelect.appendChild(opt);
       });
 
-      // 3. เปิดกล้อง
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      // 3. Start Video
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
       video.srcObject = stream;
 
-      // 4. พิกัด
+      // 4. Get Location
       navigator.geolocation.getCurrentPosition(p => {
         currentPos = { lat: p.coords.latitude, lng: p.coords.longitude };
       });
 
       video.addEventListener('play', () => {
-        mainStatus.innerText = '✅ ระบบพร้อมทำงาน มนุษย์ระบุตัวตนได้';
-        processVideo();
+        statusTxt.innerText = '✅ ระบบพร้อมสแกน';
+        runFaceAI();
       });
 
-    } catch (e) {
-      mainStatus.innerText = '❌ เกิดข้อผิดพลาด: ' + e.message;
+    } catch (err) {
+      statusTxt.innerText = '❌ ผิดพลาด: ' + err.message;
     }
   }
 
-  async function processVideo() {
-    if (!isScanning) return;
-
+  async function runFaceAI() {
     const displaySize = { width: video.videoWidth, height: video.videoHeight };
     faceapi.matchDimensions(canvas, displaySize);
 
     setInterval(async () => {
-      if (!isScanning) return;
+      if (isProcessing) return; // หยุดถ้ากำลังส่งข้อมูล
 
-      const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
-      
+      const detections = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      if (detection) {
-        const resized = faceapi.resizeResults(detection, displaySize);
+      if (detections) {
+        const resized = faceapi.resizeResults(detections, displaySize);
         
-        // วาดกรอบสี่เหลี่ยมแบบ Custom
-        const { x, y, width, height } = resized.detection.box;
+        // 1. วาดกรอบสี่เหลี่ยมขยับตามหน้า
+        const box = resized.detection.box;
         ctx.strokeStyle = '#6366f1';
         ctx.lineWidth = 3;
-        ctx.setLineDash([20, 10]); // เส้นประ
-        ctx.strokeRect(x, y, width, height);
-        ctx.setLineDash([]); // กลับเป็นเส้นปกติ
+        ctx.strokeRect(box.x, box.y, box.width, box.height);
 
-        // จดจำใบหน้า
+        // 2. เปรียบเทียบใบหน้า
         if (knownFaces.length > 0) {
           const descriptors = knownFaces.map(f => new faceapi.LabeledFaceDescriptors(f.name, [new Float32Array(f.descriptor)]));
-          const matcher = new faceapi.FaceMatcher(descriptors, 0.6);
-          const result = matcher.findBestMatch(detection.descriptor);
+          const matcher = new faceapi.FaceMatcher(descriptors, 0.55); // 0.55 = ความแม่นยำ
+          const bestMatch = matcher.findBestMatch(detections.descriptor);
 
-          if (result.label !== 'unknown') {
-            badge.classList.add('active');
-            nameSpan.innerText = 'พบนักศึกษา: ' + result.label;
-            btn.disabled = false;
-            btn.innerHTML = `<span>บันทึกชื่อ: ${result.label}</span>`;
-            
-            // เก็บชื่อไว้ที่ตัวปุ่ม
-            btn.dataset.targetName = result.label;
+          if (bestMatch.label !== 'unknown') {
+            nameTag.style.display = 'block';
+            targetName.innerText = bestMatch.label;
+
+            // 3. Logic Auto Check-in (ถ้าเจอชื่อเดิมติดกัน 3 รอบ และเลือกวิชาแล้ว)
+            if (bestMatch.label === lastDetectedName) {
+              detectionCount++;
+              if (detectionCount >= 3) {
+                const sub = subjectSelect.value;
+                if (sub) {
+                  autoLogAttendance(bestMatch.label, sub);
+                } else {
+                  statusTxt.innerText = '⚠️ โปรดเลือกวิชาก่อนเช็คชื่อ';
+                }
+              }
+            } else {
+              lastDetectedName = bestMatch.label;
+              detectionCount = 0;
+            }
           } else {
-            badge.classList.remove('active');
-            btn.disabled = true;
-            btn.innerText = 'รอระบุตัวตน...';
+            nameTag.style.display = 'none';
+            detectionCount = 0;
           }
         }
       } else {
-        badge.classList.remove('active');
-        btn.disabled = true;
-        btn.innerText = 'ไม่พบใบหน้าในเฟรม';
+        nameTag.style.display = 'none';
+        detectionCount = 0;
       }
     }, 200);
   }
 
-  btn.onclick = async () => {
-    const sub = subjectSelect.value;
-    const name = btn.dataset.targetName;
-    if (!sub) return alert('กรุณาเลือกวิชาก่อน!');
-    if (!name) return;
-
-    isScanning = false;
-    btn.disabled = true;
-    btn.innerText = '⏳ กำลังบันทึกข้อมูล...';
-
+  async function autoLogAttendance(name, subject) {
+    isProcessing = true;
+    statusTxt.innerText = `⏳ กำลังบันทึกชื่อ: ${name}...`;
+    
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({
           action: 'logAttendance',
           name: name,
-          subject: sub,
+          subject: subject,
           lat: currentPos.lat,
           lng: currentPos.lng
         })
       });
       const data = await res.json();
       if (data.success) {
-        alert('✅ บันทึกเข้าเรียนเรียบร้อย\nนักศึกษา: ' + name);
-        window.location.href = 'index.html';
+        statusTxt.innerText = '✅ บันทึกสำเร็จ! กำลังกลับหน้าหลัก...';
+        // ทำเอฟเฟกต์ไฟเขียวแวบหนึ่งก่อนไป
+        nameTag.style.background = '#059669'; 
+        setTimeout(() => window.location.href = 'index.html', 1500);
       }
     } catch (e) {
-      alert('บันทึกไม่สำเร็จ ลองอีกครั้ง');
-      isScanning = true;
-      btn.disabled = false;
+      alert('บันทึกไม่สำเร็จ ลองใหม่อีกครั้ง');
+      isProcessing = false;
+      detectionCount = 0;
     }
-  };
+  }
 
-  startSystem();
+  start();
 </script>
-
 </body>
 </html>
