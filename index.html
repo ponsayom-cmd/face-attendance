@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>ระบบสแกนใบหน้าเข้าชั้นเรียน</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <script src="js/api-config.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -32,174 +31,210 @@
       pointer-events: none;
       z-index: 0;
     }
-    body::before {
-      width: 400px; height: 400px;
-      background: #6366f1;
-      top: -100px; left: -100px;
-    }
-    body::after {
-      width: 350px; height: 350px;
-      background: #10b981;
-      bottom: -80px; right: -80px;
-    }
+    body::before { width: 300px; height: 300px; background: #6366f1; top: -50px; left: -50px; }
+    body::after { width: 400px; height: 400px; background: #06b6d4; bottom: -100px; right: -100px; }
 
-    /* Header */
     .header {
       text-align: center;
       margin-bottom: 40px;
-      position: relative; z-index: 1;
-      animation: fadeInDown 0.6s ease;
+      z-index: 1;
+      animation: fadeInDown 0.8s ease-out;
     }
+
     .logo-icon {
-      font-size: 52px;
-      display: block;
-      margin-bottom: 12px;
-      filter: drop-shadow(0 0 20px rgba(99,102,241,0.6));
+      font-size: 64px;
+      margin-bottom: 15px;
+      display: inline-block;
+      filter: drop-shadow(0 0 20px rgba(99, 102, 241, 0.4));
     }
+
     h1 {
-      font-size: 1.7em;
+      font-size: 28px;
       font-weight: 700;
-      background: linear-gradient(135deg, #a5b4fc, #e2e8f0);
+      background: linear-gradient(to right, #fff, #94a3b8);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      background-clip: text;
-      margin-bottom: 6px;
-    }
-    .subtitle {
-      font-size: 0.85em;
-      color: #64748b;
-      letter-spacing: 0.03em;
+      margin-bottom: 8px;
     }
 
-    /* Warning */
-    .api-warning {
-      display: none;
-      background: rgba(245,158,11,0.15);
-      border: 1px solid rgba(245,158,11,0.4);
-      color: #fcd34d;
-      border-radius: 12px;
-      padding: 12px 18px;
+    .subtitle { color: #94a3b8; font-size: 16px; letter-spacing: 0.5px; }
+
+    .menu-section {
       width: 100%;
-      max-width: 360px;
-      margin-bottom: 20px;
-      font-size: 0.88em;
-      position: relative; z-index: 1;
-      animation: fadeIn 0.5s ease;
+      max-width: 480px;
+      margin-bottom: 30px;
+      z-index: 1;
     }
-    .api-warning a { color: #fbbf24; font-weight: 600; text-decoration: none; }
 
-    /* Menu Cards */
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #6366f1;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 15px;
+      padding-left: 10px;
+      border-left: 3px solid #6366f1;
+    }
+
     .menu-cards {
-      width: 100%;
-      max-width: 380px;
       display: flex;
       flex-direction: column;
       gap: 16px;
-      position: relative; z-index: 1;
     }
 
     .btn-menu {
       display: flex;
       align-items: center;
-      gap: 16px;
-      padding: 20px 22px;
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      border-radius: 20px;
       text-decoration: none;
-      border-radius: 18px;
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.12);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      color: #e2e8f0;
-      transition: all 0.3s ease;
-      animation: fadeInUp 0.5s ease both;
+      color: white;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
     }
-    .btn-menu:nth-child(1) { animation-delay: 0.1s; }
-    .btn-menu:nth-child(2) { animation-delay: 0.2s; }
-    .btn-menu:nth-child(3) { animation-delay: 0.3s; }
 
     .btn-menu:hover {
-      transform: translateY(-4px);
-      background: rgba(255,255,255,0.1);
-      border-color: rgba(255,255,255,0.25);
+      transform: translateY(-5px);
+      background: rgba(51, 65, 85, 0.8);
+      border-color: rgba(99, 102, 241, 0.5);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
     }
-
-    .btn-register:hover { box-shadow: 0 8px 30px rgba(99,102,241,0.35); border-color: rgba(99,102,241,0.5); }
-    .btn-scan:hover     { box-shadow: 0 8px 30px rgba(16,185,129,0.35); border-color: rgba(16,185,129,0.5); }
-    .btn-config:hover   { box-shadow: 0 8px 30px rgba(100,116,139,0.25); border-color: rgba(148,163,184,0.4); }
 
     .card-icon {
-      width: 52px; height: 52px;
+      width: 50px;
+      height: 50px;
+      background: rgba(255, 255, 255, 0.05);
       border-radius: 14px;
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 24px;
-      flex-shrink: 0;
+      margin-right: 18px;
+      transition: 0.3s;
     }
-    .btn-register .card-icon { background: linear-gradient(135deg, #6366f1, #4f46e5); box-shadow: 0 4px 15px rgba(99,102,241,0.4); }
-    .btn-scan     .card-icon { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 15px rgba(16,185,129,0.4); }
-    .btn-config   .card-icon { background: linear-gradient(135deg, #475569, #334155); box-shadow: 0 4px 15px rgba(71,85,105,0.4); }
 
-    .card-text { flex: 1; text-align: left; }
-    .card-title { font-size: 1.05em; font-weight: 600; color: #f1f5f9; margin-bottom: 2px; }
-    .card-desc  { font-size: 0.8em; color: #64748b; }
+    .btn-menu:hover .card-icon {
+      background: rgba(99, 102, 241, 0.2);
+      transform: scale(1.1) rotate(-5deg);
+    }
+
+    .card-text { flex: 1; }
+    .card-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    .card-desc { font-size: 13px; color: #94a3b8; line-height: 1.4; }
 
     .card-arrow {
-      font-size: 18px; color: #475569;
-      transition: transform 0.3s ease, color 0.3s ease;
+      font-size: 20px;
+      color: #475569;
+      margin-left: 10px;
+      transition: 0.3s;
     }
-    .btn-menu:hover .card-arrow { transform: translateX(4px); color: #94a3b8; }
 
-    /* Animations */
-    @keyframes fadeIn    { from { opacity: 0; }                      to { opacity: 1; } }
-    @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes fadeInUp  { from { opacity: 0; transform: translateY(20px);  } to { opacity: 1; transform: translateY(0); } }
+    .btn-menu:hover .card-arrow { transform: translateX(5px); color: #6366f1; }
+
+    /* Admin specific colors */
+    .btn-admin { border-left: 4px solid #6366f1; }
+    .btn-student { border-left: 4px solid #10b981; }
+
+    .api-warning {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      padding: 12px 20px;
+      border-radius: 12px;
+      margin-bottom: 25px;
+      font-size: 14px;
+      display: none;
+      animation: shake 0.5s ease-in-out;
+      z-index: 1;
+    }
+
+    .api-warning a { color: white; font-weight: 600; text-decoration: underline; }
+
+    @keyframes fadeInDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-5px); }
+      75% { transform: translateX(5px); }
+    }
   </style>
 </head>
 <body>
 
   <div class="header">
-    <span class="logo-icon">🏢</span>
-    <h1>ระบบสแกนใบหน้าเข้าชั้นเรียน</h1>
-    <p class="subtitle">Face Recognition &amp; GPS Attendance</p>
+    <span class="logo-icon">🎓</span>
+    <h1>ระบบเช็คชื่อด้วยใบหน้า</h1>
+    <p class="subtitle">Smart Attendance System</p>
   </div>
 
   <div id="apiWarning" class="api-warning">
-    ⚠️ ยังไม่ได้ตั้งค่า API —
-    <a href="config.html">ไปตั้งค่าก่อน</a>
+    ⚠️ ยังไม่ได้ตั้งค่า API — <a href="config.html">ไปตั้งค่าตอนนี้</a>
   </div>
 
-  <div class="menu-cards">
-    <a href="register.html" class="btn-menu btn-register">
-      <div class="card-icon">👤</div>
-      <div class="card-text">
-        <div class="card-title">ลงทะเบียนนักศึกษา</div>
-        <div class="card-desc">บันทึกข้อมูลใบหน้าใหม่</div>
-      </div>
-      <span class="card-arrow">›</span>
-    </a>
+  <!-- Student Section -->
+  <div class="menu-section">
+    <div class="section-title">สำหรับนักศึกษา</div>
+    <div class="menu-cards">
+      <a href="register.html" class="btn-menu btn-student">
+        <div class="card-icon">📝</div>
+        <div class="card-text">
+          <div class="card-title">ลงทะเบียนใหม่</div>
+          <div class="card-desc">ลงทะเบียนข้อมูลใบหน้าเพื่อเข้าเรียน</div>
+        </div>
+        <span class="card-arrow">›</span>
+      </a>
 
-    <a href="scan.html" class="btn-menu btn-scan">
-      <div class="card-icon">📷</div>
-      <div class="card-text">
-        <div class="card-title">สแกนใบหน้าเข้าเรียน</div>
-        <div class="card-desc">ยืนยันตัวตนด้วยใบหน้า + GPS</div>
-      </div>
-      <span class="card-arrow">›</span>
-    </a>
+      <a href="scan.html" class="btn-menu btn-student">
+        <div class="card-icon">🤳</div>
+        <div class="card-text">
+          <div class="card-title">เช็คชื่อเข้าเรียน</div>
+          <div class="card-desc">สแกนใบหน้ายืนยันการเข้าชั้นเรียน</div>
+        </div>
+        <span class="card-arrow">›</span>
+      </a>
+    </div>
+  </div>
 
-    <a href="config.html" class="btn-menu btn-config">
-      <div class="card-icon">⚙️</div>
-      <div class="card-text">
-        <div class="card-title">ตั้งค่าระบบ</div>
-        <div class="card-desc">จัดการ GPS และ API (Admin)</div>
-      </div>
-      <span class="card-arrow">›</span>
-    </a>
+  <!-- Admin Section -->
+  <div class="menu-section">
+    <div class="section-title">สำหรับผู้ดูแลระบบ</div>
+    <div class="menu-cards">
+      <a href="admin.html" class="btn-menu btn-admin">
+        <div class="card-icon">📊</div>
+        <div class="card-text">
+          <div class="card-title">Admin Dashboard</div>
+          <div class="card-desc">ดูรายงาน จัดการรายวิชา และนักศึกษา</div>
+        </div>
+        <span class="card-arrow">›</span>
+      </a>
+
+      <a href="config.html" class="btn-menu btn-admin">
+        <div class="card-icon">⚙️</div>
+        <div class="card-text">
+          <div class="card-title">ตั้งค่าระบบ</div>
+          <div class="card-desc">จัดการ API และพิกัด GPS</div>
+        </div>
+        <span class="card-arrow">›</span>
+      </a>
+    </div>
   </div>
 
   <script>
-    if (!localStorage.getItem('gasApiUrl') && typeof GAS_API_URL === 'undefined') {
-      document.getElementById('apiWarning').style.display = 'block';
-    }
+    // ตรวจสอบการตั้งค่า API
+    window.addEventListener('load', () => {
+      const apiUrl = localStorage.getItem('gasApiUrl');
+      if (!apiUrl || apiUrl === 'null') {
+        document.getElementById('apiWarning').style.display = 'block';
+      }
+    });
   </script>
 </body>
 </html>
