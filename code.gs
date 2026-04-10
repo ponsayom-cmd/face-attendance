@@ -1,23 +1,28 @@
 // ============================================================
-//  GOOGLE APPS SCRIPT — Advanced Backend
+//  GOOGLE APPS SCRIPT — Advanced Face Recognition Backend
+//  ปรับปรุงเพื่อรองรับการเลือกรายวิชา และป้องกันการลงทะเบียนซ้ำ
 // ============================================================
 
 function doGet(e) {
   const action = e.parameter.action;
   let result;
 
-  if (action === 'getConfig') {
-    result = getConfig();
-  } else if (action === 'getKnownFaces') {
-    result = getKnownFaces();
-  } else if (action === 'getAttendanceReport') {
-    result = getAttendanceReport();
-  } else if (action === 'getSubjects') {
-    result = getSubjects();
-  } else if (action === 'getStudents') {
-    result = getStudents();
-  } else {
-    result = { error: 'Unknown action: ' + action };
+  try {
+    if (action === 'getConfig') {
+      result = getConfig();
+    } else if (action === 'getKnownFaces') {
+      result = getKnownFaces();
+    } else if (action === 'getAttendanceReport') {
+      result = getAttendanceReport();
+    } else if (action === 'getSubjects') {
+      result = getSubjects();
+    } else if (action === 'getStudents') {
+      result = getStudents();
+    } else {
+      result = { error: 'Unknown action: ' + action };
+    }
+  } catch (err) {
+    result = { error: err.toString() };
   }
 
   return ContentService
@@ -36,41 +41,55 @@ function doPost(e) {
   const action = data.action;
   let result;
 
-  switch (action) {
-    case 'registerUser':
-      result = registerUser(data.name, data.faceDescriptor);
-      break;
-    case 'logAttendance':
-      result = logAttendance(data.name, data.subject, data.lat, data.lng);
-      break;
-    case 'saveConfig':
-      result = saveConfig(data.lat, data.lng, data.radius);
-      break;
-    case 'addSubject':
-      result = addSubject(data.subjectName, data.subjectCode);
-      break;
-    case 'deleteSubject':
-      result = deleteSubject(data.subjectCode);
-      break;
-    case 'deleteStudent':
-      result = deleteStudent(data.name);
-      break;
-    default:
-      result = { error: 'Unknown action: ' + action };
+  try {
+    switch (action) {
+      case 'registerUser':
+        result = registerUser(data.name, data.faceDescriptor);
+        break;
+      case 'logAttendance':
+        // รองรับข้อมูล subject, lat, lng
+        result = logAttendance(data.name, data.subject, data.lat, data.lng);
+        break;
+      case 'saveConfig':
+        result = saveConfig(data.lat, data.lng, data.radius);
+        break;
+      case 'addSubject':
+        result = addSubject(data.subjectName, data.subjectCode);
+        break;
+      case 'deleteSubject':
+        result = deleteSubject(data.subjectCode);
+        break;
+      case 'deleteStudent':
+        result = deleteStudent(data.name);
+        break;
+      default:
+        result = { error: 'Unknown action: ' + action };
+    }
+  } catch (err) {
+    result = { error: err.toString() };
   }
 
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
 
-// --- การจัดการใบหน้า ---
+// --- การจัดการใบหน้าและนักศึกษา ---
 function registerUser(name, descriptor) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName('Users');
-  if (!sheet) {
-    sheet = ss.insertSheet('Users');
+  let sheet = ss.getSheetByName('Users') || ss.insertSheet('Users');
+  
+  if (sheet.getLastRow() === 0) {
     sheet.appendRow(['Name', 'Descriptor', 'Registration Date']);
   }
-  sheet.appendRow([name, JSON.stringify(descriptor), new Date()]);
+
+  // ระบบป้องกันชื่อซ้ำ
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0].toString().trim().toLowerCase() === name.trim().toLowerCase()) {
+      return { success: false, error: 'ชื่อนักศึกษานี้ถูกลงทะเบียนไว้แล้ว' };
+    }
+  }
+
+  sheet.appendRow([name.trim(), JSON.stringify(descriptor), new Date()]);
   return { success: true, message: 'ลงทะเบียนใบหน้าสำเร็จ' };
 }
 
@@ -81,9 +100,33 @@ function getKnownFaces() {
   const data = sheet.getDataRange().getValues();
   const faces = [];
   for (let i = 1; i < data.length; i++) {
-    faces.push({ name: data[i][0], descriptor: JSON.parse(data[i][1]) });
+    if (data[i][0] && data[i][1]) {
+      faces.push({ name: data[i][0], descriptor: JSON.parse(data[i][1]) });
+    }
   }
   return faces;
+}
+
+function getStudents() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Users');
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  return data.slice(1).map(r => ({ name: r[0], regDate: r[2] }));
+}
+
+function deleteStudent(name) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Users');
+  if (!sheet) return { error: 'Sheet not found' };
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][0] === name) {
+      sheet.deleteRow(i + 1);
+      return { success: true, message: 'ลบข้อมูลนักศึกษาเรียบร้อย' };
+    }
+  }
+  return { error: 'ไม่พบชื่อนักศึกษา' };
 }
 
 // --- การจัดการรายวิชา ---
@@ -106,7 +149,7 @@ function getSubjects() {
 function deleteSubject(code) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Subjects');
-  if (!sheet) return { error: 'ไม่พบชีตรายวิชา' };
+  if (!sheet) return { error: 'ไม่พบข้อมูล' };
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] == code) {
@@ -117,43 +160,31 @@ function deleteSubject(code) {
   return { error: 'ไม่พบรหัสวิชา' };
 }
 
-// --- การจัดการนักศึกษา ---
-function getStudents() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('Users');
-  if (!sheet) return [];
-  const data = sheet.getDataRange().getValues();
-  return data.slice(1).map(r => ({ name: r[0], regDate: r[2] }));
-}
-
-function deleteStudent(name) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('Users');
-  const data = sheet.getDataRange().getValues();
-  for (let i = 1; i < data.length; i++) {
-    if (data[i][0] === name) {
-      sheet.deleteRow(i + 1);
-      return { success: true, message: 'ลบข้อมูลนักศึกษาสำเร็จ' };
-    }
-  }
-  return { error: 'ไม่พบชื่อนักศึกษา' };
-}
-
 // --- รายงานการเข้าเรียน ---
 function logAttendance(name, subject, lat, lng) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName('Attendance');
-  if (!sheet) {
-    sheet = ss.insertSheet('Attendance');
+  let sheet = ss.getSheetByName('Attendance') || ss.insertSheet('Attendance');
+  
+  if (sheet.getLastRow() === 0) {
     sheet.appendRow(['ชื่อ-นามสกุล', 'วิชา', 'เวลา', 'วันที่', 'Lat', 'Lng', 'แผนที่']);
   }
+
   const now = new Date();
   const dateStr = Utilities.formatDate(now, Session.getScriptTimeZone(), 'yyyy-MM-dd');
   const timeStr = Utilities.formatDate(now, Session.getScriptTimeZone(), 'HH:mm:ss');
-  const mapLink = lat ? `https://www.google.com/maps?q=${lat},${lng}` : '-';
+  const mapLink = lat && lng ? `https://www.google.com/maps?q=${lat},${lng}` : '-';
 
-  sheet.appendRow([name, subject || 'ทั่วไป', timeStr, dateStr, lat || '-', lng || '-', mapLink]);
-  return { success: true, message: 'เช็คชื่อสำเร็จ' };
+  sheet.appendRow([
+    name, 
+    subject || 'ไม่ระบุวิชา', 
+    timeStr, 
+    "'" + dateStr, // ใช้ single quote เพื่อบังคับเป็น text ใน sheet
+    lat || '-', 
+    lng || '-', 
+    mapLink
+  ]);
+  
+  return { success: true, message: 'บันทึกการเข้าเรียนสำเร็จ' };
 }
 
 function getAttendanceReport() {
@@ -162,6 +193,7 @@ function getAttendanceReport() {
   if (!sheet) return [];
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
+  // ส่งข้อมูลแบบย้อนกลับ (เอาล่าสุดขึ้นก่อน)
   return data.slice(1).reverse().map(r => {
     let obj = {};
     headers.forEach((h, i) => obj[h] = r[i]);
@@ -169,7 +201,7 @@ function getAttendanceReport() {
   });
 }
 
-// --- Config GPS ---
+// --- ส่วนจัดการ Config (GPS) ---
 function saveConfig(lat, lng, radius) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName('Config') || ss.insertSheet('Config');
@@ -178,7 +210,7 @@ function saveConfig(lat, lng, radius) {
   sheet.appendRow(['Target Latitude', lat]);
   sheet.appendRow(['Target Longitude', lng]);
   sheet.appendRow(['Allowed Radius (KM)', radius]);
-  return { success: true, message: 'บันทึกตั้งค่าสำเร็จ' };
+  return { success: true, message: 'บันทึกการตั้งค่า GPS สำเร็จ' };
 }
 
 function getConfig() {
@@ -187,9 +219,11 @@ function getConfig() {
   let config = { lat: 0, lng: 0, radius: 0.5 };
   if (sheet) {
     const data = sheet.getDataRange().getValues();
-    config.lat = data[1][1];
-    config.lng = data[2][1];
-    config.radius = data[3][1];
+    if (data.length >= 4) {
+      config.lat = data[1][1];
+      config.lng = data[2][1];
+      config.radius = data[3][1];
+    }
   }
   return config;
 }
