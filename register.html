@@ -2,201 +2,100 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>ลงทะเบียนนักศึกษา - Soft Edition</title>
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ลงทะเบียนนักศึกษา</title>
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --primary: #7c9cf8;
-      --accent: #6ee7b7;
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --text-main: #334155;
-      --text-sub: #64748b;
-      --border: #f1f5f9;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; }
-    body { background-color: var(--bg); color: var(--text-main); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-
-    .card { 
-      background: var(--card); width: 100%; max-width: 400px; 
-      border-radius: 30px; padding: 30px; border: 1px solid var(--border);
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
-      text-align: center;
-    }
-
-    .header-section h2 { font-size: 22px; font-weight: 700; margin-bottom: 5px; }
-    .header-section p { font-size: 14px; color: var(--text-sub); margin-bottom: 25px; }
-
-    .cam-container {
-      width: 100%; aspect-ratio: 1/1; background: #000; border-radius: 25px;
-      overflow: hidden; position: relative; margin-bottom: 20px;
-      border: 5px solid white; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
-    }
-    video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
-    
-    .input-group { text-align: left; margin-bottom: 15px; }
-    label { font-size: 13px; font-weight: 600; color: var(--text-sub); margin-left: 5px; display: block; margin-bottom: 5px; }
-    input { 
-      width: 100%; padding: 14px 18px; border-radius: 15px; 
-      background: #fdfdfd; border: 1px solid var(--border); 
-      color: var(--text-main); outline: none; transition: 0.3s; font-size: 15px;
-    }
-    input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(124, 156, 248, 0.1); }
-
-    .btn { 
-      width: 100%; padding: 16px; border-radius: 18px; border: none; 
-      font-weight: 700; font-size: 16px; cursor: pointer; transition: 0.3s;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-    }
-    .btn-primary { 
-      background: linear-gradient(135deg, var(--primary), #a5b4fc); 
-      color: white; box-shadow: 0 8px 20px rgba(124, 156, 248, 0.3);
-    }
-    .btn-primary:disabled { background: #cbd5e1; box-shadow: none; cursor: not-allowed; }
-
-    #status-msg { font-size: 13px; margin-top: 15px; font-weight: 600; min-height: 20px; transition: 0.3s; }
-    .status-wait { color: var(--text-sub); }
-    .status-ready { color: var(--accent); }
-    .status-error { color: #ef4444; }
-
-    .back-link { display: inline-block; margin-top: 20px; color: var(--text-sub); text-decoration: none; font-size: 14px; }
+    body { font-family: 'Sarabun', sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+    .container { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+    video { width: 100%; border-radius: 15px; background: #000; margin-bottom: 15px; transform: scaleX(-1); }
+    input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 10px; border: 1px solid #ddd; box-sizing: border-box; }
+    .btn { background: #6366f1; color: white; border: none; padding: 15px; width: 100%; border-radius: 10px; font-weight: bold; cursor: pointer; }
+    .btn:disabled { background: #ccc; }
+    #status { font-size: 13px; color: #666; margin-top: 10px; }
   </style>
 </head>
 <body>
-
-<div class="card">
-  <div class="header-section">
-    <h2>ลงทะเบียนใบหน้า</h2>
-    <p>ถ่ายรูปเพื่อบันทึกข้อมูลนักศึกษา</p>
-  </div>
-
-  <div class="cam-container">
+  <div class="container">
+    <h3>ลงทะเบียนใบหน้า 📸</h3>
     <video id="video" autoplay muted playsinline></video>
+    <input type="text" id="name" placeholder="ชื่อ-นามสกุล นักศึกษา">
+    <button id="btn-reg" class="btn" disabled onclick="register()">กำลังโหลด AI...</button>
+    <div id="status">กรุณารอสักครู่...</div>
+    <br>
+    <a href="index.html" style="color:#666; text-decoration:none; font-size:14px;">กลับหน้าหลัก</a>
   </div>
-
-  <div class="input-group">
-    <label>รหัสนักศึกษา</label>
-    <input type="text" id="studentId" placeholder="เช่น 65000001">
-  </div>
-
-  <div class="input-group">
-    <label>ชื่อ-นามสกุล</label>
-    <input type="text" id="studentName" placeholder="ระบุชื่อจริง">
-  </div>
-
-  <button id="regBtn" class="btn btn-primary" onclick="startCapture()" disabled>
-    <i class="fas fa-camera"></i> บันทึกใบหน้า
-  </button>
-
-  <div id="status-msg" class="status-wait">กำลังโหลดระบบ AI...</div>
-
-  <a href="index.html" class="back-link"><i class="fas fa-chevron-left"></i> กลับหน้าหลัก</a>
-</div>
 
 <script>
-  const API_URL = localStorage.getItem('gasApiUrl');
+  const API = localStorage.getItem('gas_v5');
   const video = document.getElementById('video');
-  const regBtn = document.getElementById('regBtn');
-  const statusMsg = document.getElementById('status-msg');
+  const btn = document.getElementById('btn-reg');
+  const status = document.getElementById('status');
+  let faceDescriptor = null;
 
-  async function initSystem() {
-    try {
-      const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
-      // โหลดโมเดลมาตรฐานเพื่อความแม่นยำสูง
-      await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
-      await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-      await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-      
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
-      video.srcObject = stream;
-      
-      statusMsg.innerText = "✅ ระบบพร้อมลงทะเบียน";
-      statusMsg.className = "status-ready";
-      regBtn.disabled = false;
-    } catch (err) {
-      statusMsg.innerText = "❌ กล้องหรือระบบ AI มีปัญหา";
-      statusMsg.className = "status-error";
-      console.error(err);
-    }
+  async function init() {
+    status.innerText = "กำลังโหลดโมเดล AI...";
+    await Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
+      faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
+      faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model')
+    ]);
+    
+    const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+    video.srcObject = stream;
+    status.innerText = "โมเดลพร้อมแล้ว กรุณาจัดตำแหน่งใบหน้า";
+    detect();
   }
 
-  async function startCapture() {
-    const sid = document.getElementById('studentId').value.trim();
-    const sname = document.getElementById('studentName').value.trim();
-
-    if (!sid || !sname) {
-      alert("กรุณากรอกข้อมูลให้ครบถ้วน");
-      return;
+  async function detect() {
+    const result = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+    if (result) {
+      faceDescriptor = Array.from(result.descriptor);
+      status.innerText = "✅ ตรวจพบใบหน้าแล้ว กดปุ่มบันทึกได้";
+      status.style.color = "green";
+      btn.disabled = false;
+      btn.innerText = "บันทึกข้อมูล";
+    } else {
+      faceDescriptor = null;
+      status.innerText = "❌ ไม่พบใบหน้า กรุณาขยับหน้าให้อยู่ในกรอบ";
+      status.style.color = "red";
+      btn.disabled = true;
+      btn.innerText = "รอการตรวจจับใบหน้า...";
     }
+    setTimeout(detect, 1000);
+  }
 
-    if (!API_URL) {
-      alert("ไม่พบ URL ของระบบ กรุณากลับไปตั้งค่าที่หน้าหลัก");
-      return;
-    }
+  async function register() {
+    const name = document.getElementById('name').value.trim();
+    if (!name) return alert("กรุณากรอกชื่อ");
+    if (!faceDescriptor) return alert("ยังตรวจไม่พบใบหน้า");
+    if (!API) return alert("ยังไม่ได้ตั้งค่า API URL ในหน้าหลัก");
 
-    regBtn.disabled = true;
-    statusMsg.innerText = "⌛ กำลังตรวจจับใบหน้า (อย่าขยับ)...";
-    statusMsg.className = "status-wait";
-
-    let descriptors = [];
-    // เก็บตัวอย่างใบหน้า 3 รอบเพื่อหาค่าเฉลี่ย
-    for (let i = 0; i < 3; i++) {
-      statusMsg.innerText = `⌛ บันทึกข้อมูลรอบที่ ${i+1}/3...`;
-      const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
-      if (detection) {
-        descriptors.push(detection.descriptor);
-      }
-      await new Promise(r => setTimeout(r, 600));
-    }
-
-    if (descriptors.length === 0) {
-      statusMsg.innerText = "❌ ตรวจไม่พบใบหน้า ลองใหม่อีกครั้ง";
-      statusMsg.className = "status-error";
-      regBtn.disabled = false;
-      return;
-    }
-
-    // คำนวณค่าเฉลี่ย Descriptor
-    const avgDescriptor = new Float32Array(128);
-    for (let i = 0; i < 128; i++) {
-      let sum = 0;
-      descriptors.forEach(d => sum += d[i]);
-      avgDescriptor[i] = sum / descriptors.length;
-    }
-
-    statusMsg.innerText = "🚀 กำลังบันทึกลงฐานข้อมูล...";
+    btn.disabled = true;
+    btn.innerText = "กำลังบันทึก...";
     
     try {
-      const response = await fetch(API_URL, {
+      const res = await fetch(API, {
         method: 'POST',
-        body: JSON.stringify({
-          action: 'registerUser',
-          id: sid,
-          name: sname,
-          desc: JSON.stringify(Array.from(avgDescriptor))
-        })
+        body: JSON.stringify({ action: 'registerUser', name, desc: faceDescriptor })
       });
-      
-      const result = await response.json();
-      if (result.success) {
-        statusMsg.innerText = "✅ ลงทะเบียนสำเร็จ!";
-        statusMsg.className = "status-ready";
-        setTimeout(() => window.location.href = 'index.html', 1500);
+      const data = await res.json();
+      if (data.success) {
+        alert("ลงทะเบียนสำเร็จ!");
+        window.location.href = "index.html";
       } else {
-        throw new Error(result.error);
+        alert("ล้มเหลว: " + data.message);
+        btn.disabled = false;
+        btn.innerText = "ลองอีกครั้ง";
       }
-    } catch (err) {
-      statusMsg.innerText = "❌ บันทึกไม่สำเร็จ: " + err.message;
-      statusMsg.className = "status-error";
-      regBtn.disabled = false;
+    } catch (e) {
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
+      btn.disabled = false;
     }
   }
 
-  window.onload = initSystem;
+  window.onload = init;
 </script>
 </body>
 </html>
