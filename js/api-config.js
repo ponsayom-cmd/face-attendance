@@ -2,4 +2,4 @@
 //  ตั้งค่า Google Apps Script Web App URL
 //  แก้ไข URL ด้านล่างหากมีการ Deploy GAS ใหม่
 // ============================================================
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxFwqO68RcjsW0mo23FE_5YZfmRYp58B06z1zuYbhJhJnt1vkRDQI0qZ9w3qzeMTZ1-2Q/exec';
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzIIJi_Jjio-eFkgpn5dMz221WayIGdqf9mK3WFuqwUB4wBur3tq1GiSc4g7DoAch10gQ/exec';
