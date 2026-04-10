@@ -2,34 +2,36 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ระบบเช็คชื่อ - Smart Scanner</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>ระบบเช็คชื่อ - Fast Scan</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.js"></script>
   <style>
-    :root { --primary: #6366f1; --accent: #10b981; --warning: #f59e0b; --bg: #0f172a; }
+    :root { --primary: #4f46e5; --accent: #10b981; --warning: #f59e0b; --bg: #0f172a; }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; }
-    body { background: var(--bg); color: white; display: flex; flex-direction: column; align-items: center; padding: 15px; }
-    .container { width: 100%; max-width: 450px; background: #1e293b; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-    .cam-box { width: 100%; aspect-ratio: 1/1; background: #000; border-radius: 15px; overflow: hidden; position: relative; border: 2px solid #334155; margin-bottom: 15px; }
+    body { background: var(--bg); color: white; display: flex; flex-direction: column; align-items: center; padding: 15px; overflow-x: hidden; }
+    .container { width: 100%; max-width: 400px; background: #1e293b; padding: 20px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    
+    .header { text-align: center; margin-bottom: 15px; }
+    #status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-top: 8px; background: #334155; color: #94a3b8; }
+    .status-ready { background: rgba(16, 185, 129, 0.2) !important; color: var(--accent) !important; }
+
+    .cam-box { width: 100%; aspect-ratio: 1/1; background: #000; border-radius: 18px; overflow: hidden; position: relative; border: 2px solid #334155; }
     video { width: 100%; height: 100%; object-fit: cover; }
-    canvas { position: absolute; top: 0; left: 0; }
-    .info { text-align: center; margin-bottom: 10px; }
-    .status-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 10px; }
-    .status-ok { background: rgba(16, 185, 129, 0.2); color: var(--accent); }
-    .status-wait { background: rgba(245, 158, 11, 0.2); color: var(--warning); }
-    .log-box { width: 100%; max-height: 150px; overflow-y: auto; background: #0f172a; border-radius: 10px; padding: 10px; font-size: 13px; margin-top: 10px; }
-    .log-item { border-bottom: 1px solid #1e293b; padding: 5px 0; display: flex; justify-content: space-between; }
-    .log-item:last-child { border: none; }
-    .duplicate { color: var(--warning); font-style: italic; }
+    canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+    
+    #result-msg { text-align: center; margin-top: 15px; font-weight: bold; min-height: 24px; font-size: 18px; }
+    .log-container { margin-top: 15px; background: #0f172a; border-radius: 12px; padding: 10px; max-height: 120px; overflow-y: auto; font-size: 13px; }
+    .log-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #1e293b; }
+    .log-row:last-child { border: none; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="info">
-    <h2 id="subjectName">กำลังโหลดวิชา...</h2>
-    <div id="status" class="status-badge status-wait">⌛ กำลังโหลดระบบ AI...</div>
+  <div class="header">
+    <h3 id="subText">วิชา: กำลังโหลด...</h3>
+    <div id="status">⏳ กำลังเตรียมระบบ AI...</div>
   </div>
 
   <div class="cam-box">
@@ -37,120 +39,158 @@
     <canvas id="overlay"></canvas>
   </div>
 
-  <div id="result" style="text-align:center; font-weight:bold; font-size:18px; min-height:28px;"></div>
-  
-  <div class="log-box" id="logBox">
-    <div style="color:#94a3b8; margin-bottom:5px;">ประวัติการสแกนล่าสุด:</div>
+  <div id="result-msg"></div>
+
+  <div class="log-container" id="logList">
+    <div style="color:#64748b; font-size:11px; margin-bottom:4px;">ประวัติการสแกน</div>
   </div>
 </div>
 
 <script>
   const API_URL = localStorage.getItem('gasApiUrl');
-  const currentSub = localStorage.getItem('currentSubject') || "ทั่วไป";
-  let faceMatcher;
-  let isProcessing = false;
-  let geo = { lat: 0, lng: 0 };
+  const subject = localStorage.getItem('currentSubject') || "ทั่วไป";
+  let faceMatcher = null;
+  let isScanning = false;
+  let lastScannedPerson = "";
+  let scanCooldown = false;
 
-  document.getElementById('subjectName').innerText = "วิชา: " + currentSub;
+  document.getElementById('subText').innerText = "วิชา: " + subject;
 
-  async function init() {
-    navigator.geolocation.getCurrentPosition(p => { geo.lat = p.coords.latitude; geo.lng = p.coords.longitude; });
-    
+  async function startSystem() {
     try {
-      await Promise.all([
-        faceapi.nets.ssdMobilenetv1.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
-        faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
-        faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model')
-      ]);
-
-      const res = await fetch(`${API_URL}?action=getKnownFaces`);
-      const knownData = await res.json();
+      // 1. โหลด Models ก่อน (ใช้ตัวที่เล็กกว่า)
+      await faceapi.nets.ssdMobilenetv1.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
+      await faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
+      await faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
       
-      if(knownData.length === 0) {
-        document.getElementById('status').innerText = "❌ ยังไม่มีข้อมูลนักศึกษา";
-        return;
+      document.getElementById('status').innerText = "⏳ กำลังดึงฐานข้อมูล...";
+
+      // 2. ดึงข้อมูลใบหน้า
+      const res = await fetch(`${API_URL}?action=getKnownFaces`);
+      const users = await res.json();
+      
+      if (users.length > 0) {
+        const labeledDesc = users.map(u => {
+          return new faceapi.LabeledFaceDescriptors(u.name, [new Float32Array(u.descriptor)]);
+        });
+        faceMatcher = new faceapi.FaceMatcher(labeledDesc, 0.6);
       }
 
-      const descriptors = knownData.map(d => new faceapi.LabeledFaceDescriptors(d.name, [new Float32Array(d.descriptor)]));
-      faceMatcher = new faceapi.FaceMatcher(descriptors, 0.6);
-
-      const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+      // 3. เปิดกล้อง
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: "user", width: { ideal: 400 }, height: { ideal: 400 } } 
+      });
       video.srcObject = stream;
+      
       video.onplay = () => {
-        document.getElementById('status').innerText = "✅ ระบบพร้อมเช็คชื่อ";
-        document.getElementById('status').className = "status-badge status-ok";
-        startDetection();
+        document.getElementById('status').innerText = "✅ พร้อมเช็คชื่อ";
+        document.getElementById('status').classList.add('status-ready');
+        processFrame();
       };
-    } catch(e) { console.error(e); }
+
+    } catch (err) {
+      document.getElementById('status').innerText = "❌ เกิดข้อผิดพลาด";
+      console.error(err);
+    }
   }
 
-  async function startDetection() {
+  async function processFrame() {
+    if (!faceMatcher || scanCooldown) {
+      requestAnimationFrame(processFrame);
+      return;
+    }
+
     const canvas = document.getElementById('overlay');
     const displaySize = { width: video.videoWidth, height: video.videoHeight };
-    faceapi.matchDimensions(canvas, displaySize);
+    
+    if (canvas.width !== displaySize.width) {
+      faceapi.matchDimensions(canvas, displaySize);
+    }
 
-    setInterval(async () => {
-      if(isProcessing) return;
+    const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
+    const resized = faceapi.resizeResults(detections, displaySize);
+    
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (detections.length > 0) {
+      const result = faceMatcher.findBestMatch(detections[0].descriptor);
       
-      const detections = await faceapi.detectAllFaces(video).withFaceLandmarks().withFaceDescriptors();
-      const resized = faceapi.resizeResults(detections, displaySize);
-      canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
-      
-      faceapi.draw.drawDetections(canvas, resized);
+      // วาดกรอบ
+      const box = resized[0].detection.box;
+      ctx.strokeStyle = result.label === 'unknown' ? 'red' : '#10b981';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(box.x, box.y, box.width, box.height);
 
-      if(detections.length > 0) {
-        const bestMatch = faceMatcher.findBestMatch(detections[0].descriptor);
-        if(bestMatch.label !== 'unknown' && bestMatch.distance < 0.45) {
-          handleAttendance(bestMatch.label);
+      if (result.label !== 'unknown' && result.distance < 0.45) {
+        if (!isScanning) {
+          submitAttendance(result.label);
         }
       }
-    }, 1000);
+    }
+
+    // ใช้ความถี่ที่เหมาะสม ไม่ให้ CPU ทำงานหนักเกินไป
+    setTimeout(() => requestAnimationFrame(processFrame), 200);
   }
 
-  async function handleAttendance(name) {
-    isProcessing = true;
-    document.getElementById('result').innerText = "กำลังตรวจสอบ: " + name;
-    
+  async function submitAttendance(name) {
+    isScanning = true;
+    scanCooldown = true;
+    const msgBox = document.getElementById('result-msg');
+    msgBox.style.color = "white";
+    msgBox.innerText = `🔍 กำลังตรวจสอบ: ${name}`;
+
     try {
-      const res = await fetch(API_URL, {
+      const pos = await new Promise(res => {
+        navigator.geolocation.getCurrentPosition(res, () => res({coords:{latitude:0, longitude:0}}), {timeout: 5000});
+      });
+
+      const response = await fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({
           action: 'logAttendance',
           name: name,
-          subject: currentSub,
-          lat: geo.lat,
-          lng: geo.lng
+          subject: subject,
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude
         })
       });
-      const data = await res.json();
-      
-      const logBox = document.getElementById('logBox');
-      const time = new Date().toLocaleTimeString();
-      const item = document.createElement('div');
-      item.className = 'log-item';
-      
-      if(data.success) {
-        document.getElementById('result').innerHTML = `<span style="color:var(--accent)">ยินดีต้อนรับ ${name}!</span>`;
-        item.innerHTML = `<span>${name}</span> <span style="color:var(--accent)">เช็คชื่อสำเร็จ (${time})</span>`;
-      } else {
-        document.getElementById('result').innerHTML = `<span style="color:var(--warning)">${name} เช็คชื่อไปแล้ว</span>`;
-        item.innerHTML = `<span>${name}</span> <span class="duplicate">เช็คซ้ำ (${time})</span>`;
-      }
-      
-      logBox.prepend(item);
-      
-      // หน่วงเวลา 3 วินาทีก่อนรับคนถัดไป
-      setTimeout(() => {
-        isProcessing = false;
-        document.getElementById('result').innerText = "";
-      }, 3000);
 
-    } catch(e) {
-      isProcessing = false;
+      const data = await response.json();
+      addLog(name, data.success);
+
+      if (data.success) {
+        msgBox.style.color = "var(--accent)";
+        msgBox.innerText = `✅ สำเร็จ: ${name}`;
+      } else {
+        msgBox.style.color = "var(--warning)";
+        msgBox.innerText = `⚠️ ${name} เช็คชื่อไปแล้ว`;
+      }
+    } catch (e) {
+      msgBox.innerText = "❌ การส่งข้อมูลขัดข้อง";
     }
+
+    // หน่วงเวลา 4 วินาทีก่อนรับคนต่อไป เพื่อลดภาระเครื่อง
+    setTimeout(() => {
+      isScanning = false;
+      scanCooldown = false;
+      msgBox.innerText = "";
+    }, 4000);
   }
 
-  window.onload = init;
+  function addLog(name, isSuccess) {
+    const list = document.getElementById('logList');
+    const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+    const row = document.createElement('div');
+    row.className = 'log-row';
+    row.innerHTML = `
+      <span>${name}</span>
+      <span style="color:${isSuccess ? 'var(--accent)' : 'var(--warning)'}">${isSuccess ? 'สำเร็จ' : 'เช็คซ้ำ'} (${time})</span>
+    `;
+    list.prepend(row);
+  }
+
+  window.onload = startSystem;
 </script>
 </body>
 </html>
