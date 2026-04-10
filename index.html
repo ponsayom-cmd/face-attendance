@@ -2,153 +2,105 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ระบบสแกนใบหน้าเข้าชั้นเรียน</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>ระบบเช็คชื่อใบหน้า - หน้าหลัก</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; }
-
-    body {
-      font-family: 'Sarabun', sans-serif;
-      min-height: 100vh;
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      color: #e2e8f0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 20px;
-    }
-
-    .header { text-align: center; margin-bottom: 40px; z-index: 1; }
-    .header h1 { font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 8px; }
-    .header p { color: #94a3b8; font-size: 16px; }
-
-    .menu-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
-      width: 100%;
-      max-width: 900px;
-      z-index: 1;
-    }
-
-    .card {
-      background: var(--card);
-      padding: 24px;
-      border-radius: 20px;
-      text-decoration: none;
-      color: white;
-      border: 1px solid #334155;
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .card:hover {
-      transform: translateY(-5px);
-      border-color: var(--primary);
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
-    }
-
-    .card-icon {
-      width: 60px;
-      height: 60px;
-      background: rgba(99, 102, 241, 0.1);
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 30px;
-    }
-
-    .card-content h3 { font-size: 18px; margin-bottom: 4px; }
-    .card-content p { font-size: 13px; color: #94a3b8; }
-
-    .admin-section {
-      margin-top: 40px;
-      width: 100%;
-      max-width: 900px;
-      border-top: 1px solid #334155;
-      padding-top: 30px;
-    }
-    .admin-title { font-size: 14px; color: #64748b; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; text-align: center; }
-
-    .api-status {
-      position: fixed;
-      bottom: 20px;
-      font-size: 12px;
-      color: #64748b;
-      background: rgba(0,0,0,0.3);
-      padding: 8px 16px;
-      border-radius: 20px;
-    }
+    :root { --primary: #4f46e5; --bg: #0f172a; --card: #1e293b; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; }
+    body { background: var(--bg); color: white; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+    .container { width: 100%; max-width: 400px; }
+    .card { background: var(--card); padding: 25px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05); }
+    h1 { font-size: 24px; text-align: center; margin-bottom: 20px; color: #fff; }
+    .label { font-size: 14px; color: #94a3b8; margin-bottom: 8px; display: block; }
+    input, select { width: 100%; padding: 14px; border-radius: 14px; background: #0f172a; border: 1px solid #334155; color: white; font-size: 16px; margin-bottom: 15px; outline: none; }
+    .btn { display: block; width: 100%; padding: 16px; border-radius: 14px; border: none; font-weight: bold; font-size: 16px; cursor: pointer; text-align: center; text-decoration: none; transition: 0.2s; margin-bottom: 10px; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-outline { background: transparent; border: 2px solid #334155; color: #94a3b8; }
+    .btn:active { transform: scale(0.98); }
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+    .online { background: #10b981; }
+    .offline { background: #ef4444; }
   </style>
 </head>
 <body>
 
-  <div class="header">
-    <h1>ระบบเช็คชื่ออัจฉริยะ</h1>
-    <p>Face Recognition & Location Verified</p>
-  </div>
+<div class="container">
+  <h1>ระบบเช็คชื่อด้วยใบหน้า</h1>
 
-  <div class="menu-grid">
-    <!-- ส่วนของนักศึกษา -->
-    <a href="register.html" class="card">
-      <div class="card-icon">👤</div>
-      <div class="card-content">
-        <h3>ลงทะเบียนใบหน้า</h3>
-        <p>สำหรับนักศึกษาใหม่เข้าสู่ระบบ</p>
-      </div>
-    </a>
-
-    <a href="scan.html" class="card">
-      <div class="card-icon">📷</div>
-      <div class="card-content">
-        <h3>สแกนเช็คชื่อ</h3>
-        <p>ยืนยันตัวตนเพื่อเข้าชั้นเรียน</p>
-      </div>
-    </a>
-  </div>
-
-  <!-- ส่วนของแอดมิน/อาจารย์ -->
-  <div class="admin-section">
-    <div class="admin-title">ส่วนการจัดการและรายงาน</div>
-    <div class="menu-grid">
-      <a href="report.html" class="card" style="border-color: rgba(16, 185, 129, 0.3);">
-        <div class="card-icon" style="background: rgba(16, 185, 129, 0.1);">📊</div>
-        <div class="card-content">
-          <h3>รายงานสถิติ</h3>
-          <p>ดูผลการเข้าเรียนในรูปแบบกราฟ</p>
-        </div>
-      </a>
-
-      <a href="admin.html" class="card" style="border-color: rgba(245, 158, 11, 0.3);">
-        <div class="card-icon" style="background: rgba(245, 158, 11, 0.1);">⚙️</div>
-        <div class="card-content">
-          <h3>จัดการข้อมูล</h3>
-          <p>ลบนักศึกษา / เพิ่มรายวิชา / ตั้งค่า GPS</p>
-        </div>
-      </a>
+  <!-- ส่วนตั้งค่า API -->
+  <div class="card">
+    <span class="label">การเชื่อมต่อ Server (Web App URL)</span>
+    <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec" onchange="saveConfig()">
+    <div id="connStatus" style="font-size: 12px; text-align: right; color: #94a3b8;">
+      <span class="status-dot offline" id="dot"></span> <span id="statusText">ยังไม่ได้เชื่อมต่อ</span>
     </div>
   </div>
 
-  <div class="api-status" id="apiStatus">เช็คการเชื่อมต่อ API...</div>
+  <!-- ส่วนเลือกวิชา -->
+  <div class="card">
+    <span class="label">เลือกรายวิชาที่ต้องการเช็คชื่อ</span>
+    <select id="subjectSelect">
+      <option value="">-- กำลังโหลดรายชื่อวิชา --</option>
+    </select>
+    <button class="btn btn-primary" onclick="goToScan()">🚀 เข้าสู่หน้าสแกนเช็คชื่อ</button>
+    <a href="register.html" class="btn btn-outline">👤 ลงทะเบียนนักศึกษาใหม่</a>
+  </div>
+  
+  <p style="text-align: center; font-size: 12px; color: #475569;">v4.2 Anti-Duplicate System</p>
+</div>
 
-  <script>
-    const apiUrl = localStorage.getItem('gasApiUrl');
-    const statusEl = document.getElementById('apiStatus');
+<script>
+  // โหลดค่าที่เคยบันทึกไว้
+  document.getElementById('apiUrl').value = localStorage.getItem('gasApiUrl') || '';
+  
+  async function checkConnection() {
+    const url = document.getElementById('apiUrl').value;
+    if(!url) return;
     
-    if (!apiUrl) {
-      statusEl.innerHTML = '⚠️ ยังไม่ได้ตั้งค่า API <a href="config.html" style="color:#6366f1">ตั้งค่าที่นี่</a>';
-      statusEl.style.color = '#ef4444';
-    } else {
-      statusEl.innerText = '✅ ระบบเชื่อมต่อ API เรียบร้อย';
+    try {
+      const res = await fetch(url + '?action=getSubjects');
+      const subjects = await res.json();
+      
+      // อัปเดตสถานะ
+      document.getElementById('dot').className = 'status-dot online';
+      document.getElementById('statusText').innerText = 'เชื่อมต่อสำเร็จ';
+      
+      // อัปเดตรายชื่อวิชา
+      const select = document.getElementById('subjectSelect');
+      select.innerHTML = '';
+      if(subjects.length === 0) {
+        select.innerHTML = '<option value="ทั่วไป">ทั่วไป (ยังไม่มีวิชาในระบบ)</option>';
+      } else {
+        subjects.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.name;
+          opt.innerText = `${s.code} - ${s.name}`;
+          select.appendChild(opt);
+        });
+      }
+    } catch(e) {
+      document.getElementById('dot').className = 'status-dot offline';
+      document.getElementById('statusText').innerText = 'เชื่อมต่อล้มเหลว';
     }
-  </script>
+  }
 
+  function saveConfig() {
+    localStorage.setItem('gasApiUrl', document.getElementById('apiUrl').value);
+    checkConnection();
+  }
+
+  function goToScan() {
+    const sub = document.getElementById('subjectSelect').value;
+    if(!sub) return alert('กรุณาเลือกรายวิชาก่อน');
+    if(!document.getElementById('apiUrl').value) return alert('กรุณาตั้งค่า URL ก่อน');
+    
+    localStorage.setItem('currentSubject', sub);
+    window.location.href = 'scan.html';
+  }
+
+  // รันเมื่อเปิดหน้า
+  if(document.getElementById('apiUrl').value) checkConnection();
+</script>
 </body>
 </html>
