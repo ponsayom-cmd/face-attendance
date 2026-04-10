@@ -3,41 +3,99 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ลงทะเบียนนักศึกษา</title>
+  <title>ลงทะเบียนนักศึกษาใหม่ - Smart System</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.js"></script>
   <style>
-    :root { --primary: #6366f1; --bg: #0f172a; --card: #1e293b; }
-    body { font-family: 'Sarabun', sans-serif; background: var(--bg); color: #fff; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-    .container { max-width: 450px; width: 100%; background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid #334155; }
-    .video-box { width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 15px; overflow: hidden; margin: 15px 0; border: 2px solid #475569; }
+    :root { --primary: #6366f1; --accent: #10b981; --bg: #0f172a; --card: #1e293b; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Sarabun', sans-serif; background: var(--bg); color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+
+    .container { max-width: 500px; width: 100%; background: var(--card); padding: 30px; border-radius: 24px; border: 1px solid #334155; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+    .header { text-align: center; margin-bottom: 25px; }
+    .header h2 { font-size: 24px; margin-bottom: 8px; }
+    .header p { color: #94a3b8; font-size: 14px; }
+
+    /* Progress Steps */
+    .steps-container { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+    .step { width: 12px; height: 12px; border-radius: 50%; background: #334155; transition: 0.3s; }
+    .step.active { background: var(--primary); box-shadow: 0 0 10px var(--primary); transform: scale(1.2); }
+    .step.done { background: var(--accent); }
+
+    /* Camera View */
+    .camera-wrapper { width: 100%; aspect-ratio: 1/1; background: #000; border-radius: 20px; overflow: hidden; position: relative; border: 2px solid #334155; margin-bottom: 20px; }
     video { width: 100%; height: 100%; object-fit: cover; }
-    input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 15px; }
-    .btn { width: 100%; padding: 15px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: bold; cursor: pointer; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .msg { margin-top: 15px; text-align: center; font-size: 14px; }
+    .overlay-text { position: absolute; bottom: 20px; width: 100%; text-align: center; background: rgba(0,0,0,0.6); padding: 8px 0; font-size: 14px; color: #10b981; font-weight: bold; }
+
+    /* Inputs */
+    .input-group { margin-bottom: 15px; }
+    label { display: block; margin-bottom: 8px; font-size: 14px; color: #94a3b8; }
+    input { width: 100%; padding: 15px; border-radius: 12px; background: #0f172a; border: 1px solid #334155; color: white; font-size: 16px; outline: none; }
+    input:focus { border-color: var(--primary); }
+
+    .btn { width: 100%; padding: 18px; border-radius: 15px; border: none; font-family: inherit; font-size: 18px; font-weight: bold; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+    
+    .status-msg { text-align: center; margin-top: 15px; font-size: 14px; min-height: 20px; }
+    .success { color: var(--accent); }
+    .error { color: #ef4444; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <a href="index.html" style="color:#94a3b8; text-decoration:none; font-size:14px;">← กลับ</a>
-  <h2 style="margin-top:10px;">ลงทะเบียนใบหน้า</h2>
-  <div class="video-box"><video id="video" autoplay muted playsinline></video></div>
-  <input type="text" id="nameInput" placeholder="กรอกชื่อ-นามสกุล">
-  <div id="statusMsg" class="msg">⏳ กำลังเตรียมระบบ AI...</div>
-  <button id="btnReg" class="btn" disabled>📸 สแกนและลงทะเบียน</button>
+  <div class="header">
+    <h2>ลงทะเบียนสมาชิกใหม่</h2>
+    <p>ถ่ายรูปใบหน้า 3 มุมมอง เพื่อความแม่นยำ</p>
+  </div>
+
+  <div class="steps-container">
+    <div class="step" id="step1"></div>
+    <div class="step" id="step2"></div>
+    <div class="step" id="step3"></div>
+  </div>
+
+  <div class="camera-wrapper">
+    <video id="video" autoplay muted playsinline></video>
+    <div class="overlay-text" id="instruction">กรุณามองตรงไปที่กล้อง</div>
+  </div>
+
+  <div class="input-group">
+    <label>ชื่อ-นามสกุล นักศึกษา</label>
+    <input type="text" id="studentName" placeholder="เช่น นายสมชาย ใจดี">
+  </div>
+
+  <button class="btn btn-primary" id="btnCapture" disabled>
+    📸 บันทึกใบหน้า (ครั้งที่ 1/3)
+  </button>
+
+  <div class="status-msg" id="status">⏳ กำลังเตรียมระบบ AI...</div>
+  
+  <p style="text-align:center; margin-top:20px;">
+    <a href="index.html" style="color:#94a3b8; text-decoration:none; font-size: 14px;">← ยกเลิกและกลับหน้าหลัก</a>
+  </p>
 </div>
 
 <script>
   const API_URL = localStorage.getItem('gasApiUrl');
   const video = document.getElementById('video');
-  const btn = document.getElementById('btnReg');
-  const msg = document.getElementById('statusMsg');
-  const nameInput = document.getElementById('nameInput');
-  let knownFaces = [];
+  const btn = document.getElementById('btnCapture');
+  const status = document.getElementById('status');
+  const instr = document.getElementById('instruction');
+  const nameInput = document.getElementById('studentName');
+
+  let currentStep = 1;
+  const maxSteps = 3;
+  const instructions = [
+    "กรุณามองตรงไปที่กล้อง",
+    "เอียงหน้าไปทางซ้ายเล็กน้อย",
+    "เอียงหน้าไปทางขวาเล็กน้อย"
+  ];
 
   async function init() {
+    if (!API_URL) return alert('กรุณาตั้งค่า API URL ก่อนใช้งาน');
+
     try {
       await Promise.all([
         faceapi.nets.ssdMobilenetv1.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
@@ -45,62 +103,75 @@
         faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model')
       ]);
 
-      if (API_URL) {
-        const res = await fetch(`${API_URL}?action=getKnownFaces`);
-        knownFaces = await res.json();
-      }
-
       const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
       video.srcObject = stream;
-      msg.innerText = '✅ ระบบพร้อมทำงาน';
-      btn.disabled = false;
+
+      video.onplay = () => {
+        status.innerText = '✅ ระบบพร้อมทำงาน';
+        btn.disabled = false;
+        updateUI();
+      };
     } catch (e) {
-      msg.innerHTML = `<span style="color:#ef4444">❌ โหลดระบบไม่สำเร็จ: ${e.message}</span>`;
+      status.innerText = '❌ ผิดพลาด: ' + e.message;
     }
+  }
+
+  function updateUI() {
+    // อัปเดตจุดสถานะ
+    for(let i=1; i<=3; i++) {
+      const s = document.getElementById('step' + i);
+      s.className = 'step';
+      if (i < currentStep) s.classList.add('done');
+      if (i === currentStep) s.classList.add('active');
+    }
+
+    instr.innerText = instructions[currentStep - 1];
+    btn.innerHTML = `📸 บันทึกใบหน้า (ครั้งที่ ${currentStep}/3)`;
   }
 
   btn.onclick = async () => {
     const name = nameInput.value.trim();
-    if (!name) return alert('กรุณาระบุชื่อ');
-    
+    if (!name) return alert('กรุณากรอกชื่อก่อนเริ่มบันทึก');
+
     btn.disabled = true;
-    btn.innerText = '⏳ กำลังตรวจสอบใบหน้า...';
+    status.innerText = '⏳ กำลังวิเคราะห์ใบหน้า...';
 
     const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+    
     if (!detection) {
-      alert('ไม่พบใบหน้า กรุณามองกล้อง');
-      btn.disabled = false; btn.innerText = '📸 สแกนและลงทะเบียน';
+      alert('ไม่พบใบหน้า กรุณามองกล้องให้ชัดเจน');
+      btn.disabled = false;
+      status.innerText = '❌ ตรวจจับไม่สำเร็จ';
       return;
     }
 
-    // 1. ตรวจสอบใบหน้าซ้ำ (Client-side)
-    if (knownFaces.length > 0) {
-      const descriptors = knownFaces.map(f => new faceapi.LabeledFaceDescriptors(f.name, [new Float32Array(f.descriptor)]));
-      const matcher = new faceapi.FaceMatcher(descriptors, 0.5);
-      const bestMatch = matcher.findBestMatch(detection.descriptor);
-      if (bestMatch.label !== 'unknown') {
-        msg.innerHTML = `<span style="color:#fbbf24">⚠️ พบใบหน้านี้ซ้ำในระบบ (ชื่อ: ${bestMatch.label})</span>`;
-        btn.disabled = false; btn.innerText = '📸 สแกนและลงทะเบียน';
-        return;
-      }
-    }
-
-    // 2. ส่งบันทึก (Server-side)
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
-        body: JSON.stringify({ action: 'registerUser', name: name, faceDescriptor: Array.from(detection.descriptor) })
+        body: JSON.stringify({
+          action: 'registerUser',
+          name: name,
+          faceDescriptor: Array.from(detection.descriptor)
+        })
       });
-      const result = await res.json();
-      if (result.success) {
-        msg.innerHTML = '<span style="color:#10b981">✅ ลงทะเบียนสำเร็จ!</span>';
-        setTimeout(() => window.location.href='index.html', 1500);
-      } else {
-        msg.innerHTML = `<span style="color:#ef4444">❌ ${result.error}</span>`;
-        btn.disabled = false; btn.innerText = '📸 สแกนและลงทะเบียน';
+      const data = await res.json();
+
+      if (data.success) {
+        if (currentStep < maxSteps) {
+          status.innerHTML = `<span class="success">✅ บันทึกรูปที่ ${currentStep} สำเร็จ!</span>`;
+          currentStep++;
+          setTimeout(() => {
+            updateUI();
+            btn.disabled = false;
+            status.innerText = 'ทำต่อได้เลย...';
+          }, 1500);
+        } else {
+          status.innerHTML = `<span class="success">🎉 ลงทะเบียนสำเร็จครบ 3 รูปแล้ว!</span>`;
+          setTimeout(() => window.location.href = 'index.html', 2000);
+        }
       }
     } catch (e) {
-      alert('บันทึกไม่สำเร็จ ตรวจสอบอินเทอร์เน็ตหรือ API URL');
+      alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
       btn.disabled = false;
     }
   };
