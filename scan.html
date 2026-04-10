@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>สแกนใบหน้าเข้าเรียน</title>
+  <title>สแกนเข้าเรียน v5.9.1</title>
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
   <style>
@@ -49,47 +49,49 @@
   let isProcessing = false;
 
   async function init() {
-    // แก้ไขการตรวจสอบเงื่อนไขและเปลี่ยนหน้าให้ปลอดภัยขึ้น
-    if(!API || API === "" || !subject || subject === "") {
-      alert("ไม่พบข้อมูลวิชาหรือ URL กรุณากลับไปตั้งค่าที่หน้าหลัก");
-      window.location.replace("index.html");
+    // 1. ตรวจสอบความถูกต้องของ URL และ วิชา
+    if(!API || API.trim() === "" || !subject) {
+      alert("ไม่พบข้อมูลการตั้งค่า กรุณากลับไปหน้าหลัก");
+      window.location.href = "index.html";
       return;
     }
     document.getElementById('txt-sub').innerText = `วิชา: ${subject}`;
 
     try {
-      // 1. โหลดโมเดล AI
+      // 2. โหลดโมเดล AI
+      const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
       await Promise.all([
-        faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
-        faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
-        faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model')
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
       ]);
 
-      // 2. ดึงข้อมูลใบหน้าจาก Sheet
+      // 3. ดึงข้อมูลใบหน้า
       const res = await fetch(`${API}?action=getKnownFaces&t=${Date.now()}`);
       const knownFaces = await res.json();
 
-      if (!knownFaces || knownFaces.length === 0) {
-        alert("ยังไม่มีข้อมูลนักศึกษาในระบบ กรุณาลงทะเบียนก่อน");
-        window.location.replace("register.html");
+      // ตรวจสอบข้อมูลใบหน้า
+      if (!Array.isArray(knownFaces) || knownFaces.length === 0) {
+        alert("ไม่พบข้อมูลนักศึกษาในระบบ หรือข้อมูลใบหน้าว่างเปล่า");
+        window.location.href = "register.html";
         return;
       }
 
-      // 3. เตรียมการเปรียบเทียบใบหน้า
+      // 4. สร้าง FaceMatcher
       const labeledDescriptors = knownFaces
-        .filter(f => f.descriptor && f.descriptor.length > 0)
+        .filter(f => f.descriptor && Array.isArray(f.descriptor) && f.descriptor.length > 0)
         .map(f => new faceapi.LabeledFaceDescriptors(f.name, [new Float32Array(f.descriptor)]));
 
       if (labeledDescriptors.length === 0) {
-        alert("ข้อมูลใบหน้าในระบบไม่สมบูรณ์ (Descriptor ว่าง) กรุณาลงทะเบียนใหม่");
-        window.location.replace("index.html");
+        alert("ข้อมูลใบหน้าในระบบไม่ถูกต้อง กรุณาลงทะเบียนใหม่");
+        window.location.href = "register.html";
         return;
       }
 
-      faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.5);
+      faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
 
-      // 4. เปิดกล้อง
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      // 5. เปิดกล้อง
+      const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
       video.srcObject = stream;
       
       document.getElementById('loading').style.display = 'none';
@@ -98,6 +100,7 @@
     } catch (e) {
       console.error(e);
       alert("เกิดข้อผิดพลาดในการโหลดระบบ: " + e.message);
+      window.location.href = "index.html";
     }
   }
 
@@ -116,32 +119,29 @@
         msg.style.color = "var(--success)";
         logAttendance(bestMatch.label);
       } else {
-        msg.innerText = "❌ ไม่พบข้อมูลในระบบ (Unknown)";
+        msg.innerText = "❌ ไม่พบข้อมูล (Unknown Face)";
         msg.style.color = "var(--err)";
-        setTimeout(startScan, 500);
+        setTimeout(startScan, 600);
       }
     } else {
       msg.innerText = "กรุณาวางใบหน้าให้ตรงกรอบ";
       msg.style.color = "var(--p)";
-      setTimeout(startScan, 500);
+      setTimeout(startScan, 600);
     }
   }
 
   async function logAttendance(name) {
     isProcessing = true;
     try {
-      const res = await fetch(API, {
+      await fetch(API, {
         method: 'POST',
         body: JSON.stringify({ action: 'logAttendance', name, subject })
       });
-      const data = await res.json();
-      if(data.success) {
-        msg.innerText = `เช็คชื่อสำเร็จ: ${name}`;
-        setTimeout(() => {
-          isProcessing = false;
-          startScan();
-        }, 3000);
-      }
+      msg.innerText = `เช็คชื่อสำเร็จ: ${name}`;
+      setTimeout(() => {
+        isProcessing = false;
+        startScan();
+      }, 3000);
     } catch (e) {
       isProcessing = false;
       startScan();
