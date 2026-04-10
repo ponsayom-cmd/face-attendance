@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>สแกนเข้าเรียน - ระบบอัจฉริยะ</title>
+  <title>สแกนเข้าเรียน</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.js"></script>
   <style>
@@ -12,10 +12,12 @@
     .container { max-width: 500px; width: 100%; background: var(--card); padding: 20px; border-radius: 20px; border: 1px solid #334155; }
     .video-box { width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 15px; overflow: hidden; position: relative; border: 2px solid #475569; }
     video { width: 100%; height: 100%; object-fit: cover; }
-    select, .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; margin-top: 15px; font-family: inherit; }
-    select { background: #0f172a; color: white; border: 1px solid #334155; }
-    .btn { background: var(--primary); color: white; font-weight: bold; cursor: pointer; font-size: 16px; }
-    .status { margin-top: 15px; text-align: center; color: #94a3b8; font-size: 14px; }
+    select, .btn { width: 100%; padding: 15px; border-radius: 12px; border: none; margin-top: 15px; font-family: inherit; font-size: 16px; }
+    select { background: #0f172a; color: white; border: 1px solid #334155; cursor: pointer; }
+    .btn { background: var(--primary); color: white; font-weight: bold; cursor: pointer; transition: 0.3s; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .status { margin-top: 15px; text-align: center; color: #94a3b8; font-size: 14px; min-height: 20px; }
+    .nav-link { display: block; text-align: center; margin-top: 20px; color: #94a3b8; text-decoration: none; }
   </style>
 </head>
 <body>
@@ -27,14 +29,14 @@
     <video id="video" autoplay muted playsinline></video>
   </div>
 
-  <div class="status" id="status">⏳ กำลังโหลด AI...</div>
+  <div class="status" id="status">⏳ กำลังเตรียมระบบ...</div>
 
   <select id="subjectSelect">
-    <option value="">-- กรุณาเลือกวิชา --</option>
+    <option value="">-- กรุณาเลือกรายวิชา --</option>
   </select>
 
-  <button class="btn" id="btnScan" disabled>ยืนยันตัวตนและเข้าเรียน</button>
-  <p style="text-align:center; margin-top:15px;"><a href="index.html" style="color:#94a3b8; text-decoration:none;">กลับหน้าหลัก</a></p>
+  <button class="btn" id="btnScan" disabled>ยืนยันใบหน้าและเช็คชื่อ</button>
+  <a href="index.html" class="nav-link">← กลับหน้าหลัก</a>
 </div>
 
 <script>
@@ -48,15 +50,17 @@
   let currentPos = { lat: 0, lng: 0 };
 
   async function init() {
+    if (!API_URL) return alert('กรุณาตั้งค่า API URL ก่อนใช้งาน');
+
     try {
-      // 1. โหลด Models
+      status.innerText = '⏳ โหลด AI Models...';
       await Promise.all([
         faceapi.nets.ssdMobilenetv1.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
         faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
         faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model')
       ]);
 
-      // 2. ดึงข้อมูลวิชาและใบหน้า
+      status.innerText = '⏳ ดึงข้อมูลจากระบบ...';
       const [facesRes, subRes] = await Promise.all([
         fetch(`${API_URL}?action=getKnownFaces`).then(r => r.json()),
         fetch(`${API_URL}?action=getSubjects`).then(r => r.json())
@@ -70,66 +74,74 @@
         subjectSelect.appendChild(opt);
       });
 
-      // 3. เปิดกล้อง
+      status.innerText = '⏳ เปิดกล้องและขอพิกัด...';
       const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
       video.srcObject = stream;
 
-      // 4. ดึงพิกัด
-      navigator.geolocation.getCurrentPosition(p => {
-        currentPos = { lat: p.coords.latitude, lng: p.coords.longitude };
-        status.innerText = '✅ ระบบพร้อมใช้งาน';
-        btn.disabled = false;
-      });
+      navigator.geolocation.getCurrentPosition(
+        p => {
+          currentPos = { lat: p.coords.latitude, lng: p.coords.longitude };
+          status.innerText = '✅ พร้อมสแกน';
+          btn.disabled = false;
+        },
+        err => {
+          status.innerText = '⚠️ ไม่สามารถดึงพิกัดได้ แต่ยังสแกนได้';
+          btn.disabled = false;
+        }
+      );
 
     } catch (e) {
-      status.innerText = '❌ เกิดข้อผิดพลาด: ' + e.message;
+      status.innerText = '❌ ผิดพลาด: ' + e.message;
     }
   }
 
   btn.onclick = async () => {
-    const sub = subjectSelect.value;
-    if (!sub) return alert('กรุณาเลือกวิชาก่อนเช็คชื่อ');
+    const subject = subjectSelect.value;
+    if (!subject) return alert('กรุณาเลือกรายวิชาก่อน!');
 
     btn.disabled = true;
-    btn.innerText = '⏳ กำลังสแกนใบหน้า...';
+    btn.innerText = '⏳ กำลังตรวจสอบใบหน้า...';
 
     const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
     if (!detection) {
-      alert('ไม่พบใบหน้า กรุณามองกล้องให้ชัด');
-      btn.disabled = false; btn.innerText = 'ยืนยันตัวตนและเข้าเรียน';
+      alert('ไม่พบใบหน้า กรุณามองกล้องตรงๆ');
+      btn.disabled = false; btn.innerText = 'ยืนยันใบหน้าและเช็คชื่อ';
       return;
     }
 
-    // เทียบใบหน้า
+    if (knownFaces.length === 0) {
+      alert('ไม่มีข้อมูลนักศึกษาในระบบ');
+      btn.disabled = false; return;
+    }
+
     const descriptors = knownFaces.map(f => new faceapi.LabeledFaceDescriptors(f.name, [new Float32Array(f.descriptor)]));
     const matcher = new faceapi.FaceMatcher(descriptors, 0.6);
     const bestMatch = matcher.findBestMatch(detection.descriptor);
 
     if (bestMatch.label === 'unknown') {
-      alert('ไม่พบข้อมูลนักศึกษาคนนี้ในระบบ');
-      btn.disabled = false; btn.innerText = 'ยืนยันตัวตนและเข้าเรียน';
+      alert('ไม่พบข้อมูลนักศึกษาคนนี้');
+      btn.disabled = false; btn.innerText = 'ยืนยันใบหน้าและเช็คชื่อ';
       return;
     }
 
-    // ส่งบันทึก
     try {
       const res = await fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({
           action: 'logAttendance',
           name: bestMatch.label,
-          subject: sub,
+          subject: subject,
           lat: currentPos.lat,
           lng: currentPos.lng
         })
       });
       const result = await res.json();
       if (result.success) {
-        alert('✅ บันทึกเข้าเรียนสำเร็จ: ' + bestMatch.label);
+        alert('✅ บันทึกสำเร็จ: ' + bestMatch.label);
         window.location.href = 'index.html';
       }
     } catch (e) {
-      alert('เกิดข้อผิดพลาดในการบันทึก');
+      alert('บันทึกไม่สำเร็จ: ' + e.message);
       btn.disabled = false;
     }
   };
