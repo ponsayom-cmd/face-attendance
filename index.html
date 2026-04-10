@@ -3,104 +3,150 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>ระบบเช็คชื่อใบหน้า - หน้าหลัก</title>
+  <title>Smart Face Attendance - Home</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    :root { --primary: #4f46e5; --bg: #0f172a; --card: #1e293b; }
+    :root { --primary: #6366f1; --secondary: #4f46e5; --bg: #0f172a; --card: #1e293b; --text: #f8fafc; }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Sarabun', sans-serif; }
-    body { background: var(--bg); color: white; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-    .container { width: 100%; max-width: 400px; }
-    .card { background: var(--card); padding: 25px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05); }
-    h1 { font-size: 24px; text-align: center; margin-bottom: 20px; color: #fff; }
-    .label { font-size: 14px; color: #94a3b8; margin-bottom: 8px; display: block; }
-    input, select { width: 100%; padding: 14px; border-radius: 14px; background: #0f172a; border: 1px solid #334155; color: white; font-size: 16px; margin-bottom: 15px; outline: none; }
-    .btn { display: block; width: 100%; padding: 16px; border-radius: 14px; border: none; font-weight: bold; font-size: 16px; cursor: pointer; text-align: center; text-decoration: none; transition: 0.2s; margin-bottom: 10px; }
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-outline { background: transparent; border: 2px solid #334155; color: #94a3b8; }
-    .btn:active { transform: scale(0.98); }
-    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
-    .online { background: #10b981; }
-    .offline { background: #ef4444; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+    
+    .container { width: 100%; max-width: 450px; }
+    .header { text-align: center; margin-bottom: 30px; }
+    .header h1 { font-size: 28px; font-weight: 700; background: linear-gradient(to right, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .header p { color: #94a3b8; font-size: 14px; margin-top: 5px; }
+
+    .card { background: var(--card); border-radius: 24px; padding: 25px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); border: 1px solid rgba(255,255,255,0.05); margin-bottom: 20px; }
+    .section-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; display: flex; align-items: center; color: #cbd5e1; }
+    .section-title i { margin-right: 10px; color: var(--primary); }
+
+    .input-group { position: relative; margin-bottom: 15px; }
+    input, select { width: 100%; padding: 14px 14px 14px 45px; border-radius: 16px; background: #0f172a; border: 1px solid #334155; color: white; font-size: 15px; outline: none; transition: 0.3s; }
+    input:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2); }
+    .input-group i { position: absolute; left: 16px; top: 16px; color: #64748b; }
+
+    .grid-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
+    .menu-item { background: #334155; padding: 20px; border-radius: 20px; text-align: center; cursor: pointer; transition: 0.3s; text-decoration: none; color: white; border: 1px solid transparent; }
+    .menu-item:hover { background: #475569; transform: translateY(-5px); border-color: var(--primary); }
+    .menu-item i { font-size: 24px; margin-bottom: 10px; display: block; color: var(--primary); }
+    .menu-item span { font-size: 14px; font-weight: 600; }
+
+    .btn-main { width: 100%; padding: 18px; border-radius: 18px; border: none; background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; font-weight: 700; font-size: 16px; cursor: pointer; box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.4); margin-top: 10px; transition: 0.3s; }
+    .btn-main:hover { opacity: 0.9; transform: scale(1.02); }
+
+    #connStatus { font-size: 12px; margin-top: 10px; padding: 8px; border-radius: 10px; background: rgba(0,0,0,0.2); text-align: center; }
+    .status-online { color: #10b981; }
+    .status-offline { color: #ef4444; }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <h1>ระบบเช็คชื่อด้วยใบหน้า</h1>
+  <div class="header">
+    <h1>Smart Check-in</h1>
+    <p>ระบบเช็คชื่อด้วยใบหน้าอัจฉริยะ v4.5</p>
+  </div>
 
-  <!-- ส่วนตั้งค่า API -->
+  <!-- การตั้งค่าระบบ -->
   <div class="card">
-    <span class="label">การเชื่อมต่อ Server (Web App URL)</span>
-    <input type="text" id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec" onchange="saveConfig()">
-    <div id="connStatus" style="font-size: 12px; text-align: right; color: #94a3b8;">
-      <span class="status-dot offline" id="dot"></span> <span id="statusText">ยังไม่ได้เชื่อมต่อ</span>
+    <div class="section-title"><i class="fas fa-cog"></i> ตั้งค่าการเชื่อมต่อ</div>
+    <div class="input-group">
+      <i class="fas fa-link"></i>
+      <input type="text" id="apiUrl" placeholder="วางลิงก์ Web App URL ที่นี่..." onchange="saveConfig()">
+    </div>
+    <div id="connStatus">
+      <i class="fas fa-circle" id="statusDot"></i> <span id="statusText">ตรวจสอบการเชื่อมต่อ...</span>
     </div>
   </div>
 
-  <!-- ส่วนเลือกวิชา -->
+  <!-- เลือกวิชาและเข้าใช้งาน -->
   <div class="card">
-    <span class="label">เลือกรายวิชาที่ต้องการเช็คชื่อ</span>
-    <select id="subjectSelect">
-      <option value="">-- กำลังโหลดรายชื่อวิชา --</option>
-    </select>
-    <button class="btn btn-primary" onclick="goToScan()">🚀 เข้าสู่หน้าสแกนเช็คชื่อ</button>
-    <a href="register.html" class="btn btn-outline">👤 ลงทะเบียนนักศึกษาใหม่</a>
+    <div class="section-title"><i class="fas fa-book"></i> เลือกรายวิชา</div>
+    <div class="input-group">
+      <i class="fas fa-graduation-cap"></i>
+      <select id="subjectSelect">
+        <option value="">-- กรุณาเลือกวิชา --</option>
+      </select>
+    </div>
+    
+    <button class="btn-main" onclick="goToScan()">
+      <i class="fas fa-camera-retro"></i> &nbsp; เริ่มสแกนเช็คชื่อ
+    </button>
+
+    <div class="grid-menu">
+      <a href="register.html" class="menu-item">
+        <i class="fas fa-user-plus"></i>
+        <span>ลงทะเบียนใหม่</span>
+      </a>
+      <a href="#" onclick="openAdmin()" class="menu-item">
+        <i class="fas fa-database"></i>
+        <span>ระบบหลังบ้าน</span>
+      </a>
+    </div>
   </div>
-  
-  <p style="text-align: center; font-size: 12px; color: #475569;">v4.2 Anti-Duplicate System</p>
+
+  <footer style="text-align: center; color: #64748b; font-size: 11px; margin-top: 20px;">
+    &copy; 2024 Face Attendance System. All rights reserved.
+  </footer>
 </div>
 
 <script>
-  // โหลดค่าที่เคยบันทึกไว้
-  document.getElementById('apiUrl').value = localStorage.getItem('gasApiUrl') || '';
-  
-  async function checkConnection() {
-    const url = document.getElementById('apiUrl').value;
-    if(!url) return;
+  // โหลดค่าเดิม
+  const apiUrlInput = document.getElementById('apiUrl');
+  apiUrlInput.value = localStorage.getItem('gasApiUrl') || '';
+
+  async function checkAndLoad() {
+    const url = apiUrlInput.value;
+    if(!url) return updateStatus(false, 'ยังไม่ได้ใส่ลิงก์ API');
     
     try {
       const res = await fetch(url + '?action=getSubjects');
       const subjects = await res.json();
+      updateStatus(true, 'เชื่อมต่อเซิร์ฟเวอร์สำเร็จ');
       
-      // อัปเดตสถานะ
-      document.getElementById('dot').className = 'status-dot online';
-      document.getElementById('statusText').innerText = 'เชื่อมต่อสำเร็จ';
-      
-      // อัปเดตรายชื่อวิชา
       const select = document.getElementById('subjectSelect');
-      select.innerHTML = '';
-      if(subjects.length === 0) {
-        select.innerHTML = '<option value="ทั่วไป">ทั่วไป (ยังไม่มีวิชาในระบบ)</option>';
-      } else {
-        subjects.forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s.name;
-          opt.innerText = `${s.code} - ${s.name}`;
-          select.appendChild(opt);
-        });
-      }
+      select.innerHTML = '<option value="">-- เลือกวิชาที่ต้องการ --</option>';
+      subjects.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.name;
+        opt.innerText = `${s.code} ${s.name}`;
+        select.appendChild(opt);
+      });
     } catch(e) {
-      document.getElementById('dot').className = 'status-dot offline';
-      document.getElementById('statusText').innerText = 'เชื่อมต่อล้มเหลว';
+      updateStatus(false, 'เชื่อมต่อไม่สำเร็จ ตรวจสอบ URL');
     }
   }
 
+  function updateStatus(isOk, text) {
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    dot.className = isOk ? 'fas fa-circle status-online' : 'fas fa-circle status-offline';
+    txt.innerText = text;
+    txt.className = isOk ? 'status-online' : 'status-offline';
+  }
+
   function saveConfig() {
-    localStorage.setItem('gasApiUrl', document.getElementById('apiUrl').value);
-    checkConnection();
+    localStorage.setItem('gasApiUrl', apiUrlInput.value);
+    checkAndLoad();
   }
 
   function goToScan() {
     const sub = document.getElementById('subjectSelect').value;
-    if(!sub) return alert('กรุณาเลือกรายวิชาก่อน');
-    if(!document.getElementById('apiUrl').value) return alert('กรุณาตั้งค่า URL ก่อน');
-    
+    if(!sub) return alert('กรุณาเลือกวิชาก่อนเริ่มสแกน');
     localStorage.setItem('currentSubject', sub);
     window.location.href = 'scan.html';
   }
 
-  // รันเมื่อเปิดหน้า
-  if(document.getElementById('apiUrl').value) checkConnection();
+  function openAdmin() {
+    const url = apiUrlInput.value;
+    if(!url) return alert('กรุณาตั้งค่า URL ก่อน');
+    // เปิดหน้า Google Sheet โดยตรง (ดัดแปลงจาก URL ของ Apps Script)
+    const sheetUrl = url.split('/exec')[0].replace('macros/s/', '').split('/dev')[0];
+    alert('กำลังเปิดหน้า Google Sheet เพื่อจัดการข้อมูล...');
+    window.open(`https://docs.google.com/spreadsheets/d/${sheetUrl}`, '_blank');
+  }
+
+  if(apiUrlInput.value) checkAndLoad();
 </script>
 </body>
 </html>
