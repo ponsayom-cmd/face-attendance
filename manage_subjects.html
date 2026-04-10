@@ -3,78 +3,91 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>จัดการรายวิชา v5.7</title>
+  <title>จัดการรายวิชา</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Sarabun', sans-serif; background: #f8fafc; padding: 20px; }
     .card { background: white; padding: 20px; border-radius: 15px; max-width: 500px; margin: 0 auto; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
     input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
-    .btn { background: #10b981; color: white; border: none; padding: 12px; width: 100%; border-radius: 10px; cursor: pointer; font-weight: bold; }
-    table { width: 100%; margin-top: 20px; border-collapse: collapse; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-    .back { display: block; text-align: center; margin-top: 20px; color: #666; text-decoration: none; }
+    .btn { background: #10b981; color: white; border: none; padding: 12px; width: 100%; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+    .btn:disabled { background: #ccc; }
+    table { width: 100%; margin-top: 25px; border-collapse: collapse; }
+    th { text-align: left; padding: 12px; border-bottom: 2px solid #f1f5f9; color: #64748b; font-size: 14px; }
+    td { padding: 12px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+    .back { display: block; text-align: center; margin-top: 20px; color: #94a3b8; text-decoration: none; font-size: 14px; }
   </style>
 </head>
 <body>
   <div class="card">
     <h3>เพิ่มรายวิชาใหม่ 📚</h3>
-    <input type="text" id="code" placeholder="รหัสวิชา">
-    <input type="text" id="name" placeholder="ชื่อวิชา">
+    <input type="text" id="code" placeholder="รหัสวิชา (เช่น CS101)">
+    <input type="text" id="name" placeholder="ชื่อรายวิชา">
     <button id="btn-add" class="btn" onclick="addSubject()">บันทึกวิชา</button>
 
-    <table id="sub-table">
+    <table>
       <thead><tr><th>รหัส</th><th>ชื่อวิชา</th></tr></thead>
-      <tbody id="sub-list"></tbody>
+      <tbody id="sub-list">
+        <tr><td colspan="2" style="text-align:center;">กำลังโหลด...</td></tr>
+      </tbody>
     </table>
   </div>
-  <a href="index.html" class="back">กลับหน้าหลัก</a>
+  <a href="index.html" class="back">← กลับหน้าหลัก</a>
 
 <script>
   const API = localStorage.getItem('gas_v5');
   
   window.onload = () => {
-    if(!API) return alert("กรุณาตั้งค่า API ที่หน้าหลัก");
+    if(!API) return alert("กรุณาตั้งค่า API ที่หน้าหลักก่อน");
     loadSubjects();
   };
 
   async function addSubject() {
     const code = document.getElementById('code').value.trim();
     const name = document.getElementById('name').value.trim();
-    if(!code || !name) return alert("กรุณากรอกข้อมูล");
+    if(!code || !name) return alert("กรุณากรอกข้อมูลให้ครบ");
 
     const btn = document.getElementById('btn-add');
     btn.disabled = true;
     btn.innerText = "กำลังบันทึก...";
 
     try {
-      await fetch(API, {
+      // ใช้ fetch แบบปกติ (Google Apps Script v5.6+ รองรับ JSON POST)
+      const response = await fetch(API, {
         method: 'POST',
         body: JSON.stringify({ action: 'addSubject', code, name })
       });
-      alert("เพิ่มวิชาสำเร็จ");
-      location.reload();
+      const result = await response.json();
+      if(result.success) {
+        alert("บันทึกวิชาสำเร็จ!");
+        document.getElementById('code').value = '';
+        document.getElementById('name').value = '';
+        loadSubjects();
+      }
     } catch (e) {
-      alert("บันทึกเรียบร้อย (กรุณารอข้อมูลอัปเดตในชีต)");
-      location.reload();
+      // กรณี Error แต่ข้อมูลเข้า (อาจเกิดจาก CORS) ให้ลองโหลดใหม่
+      alert("ส่งข้อมูลแล้ว กำลังอัปเดตรายการ...");
+      loadSubjects();
+    } finally {
+      btn.disabled = false;
+      btn.innerText = "บันทึกวิชา";
     }
   }
 
   async function loadSubjects() {
     const list = document.getElementById('sub-list');
-    list.innerHTML = "<tr><td colspan='2'>กำลังโหลด...</td></tr>";
     try {
       const res = await fetch(`${API}?action=getSubjects&t=${Date.now()}`);
       const data = await res.json();
       list.innerHTML = "";
-      if(data.length > 0) {
+      if(Array.isArray(data) && data.length > 0) {
         data.forEach(v => {
-          list.innerHTML += `<tr><td>${v.code}</td><td>${v.name}</td></tr>`;
+          list.innerHTML += `<tr><td><b>${v.code}</b></td><td>${v.name}</td></tr>`;
         });
       } else {
-        list.innerHTML = "<tr><td colspan='2'>ไม่พบรายวิชา</td></tr>";
+        list.innerHTML = "<tr><td colspan='2' style='text-align:center; color:#94a3b8;'>ยังไม่มีรายวิชา</td></tr>";
       }
     } catch (e) {
-      list.innerHTML = "<tr><td colspan='2'>โหลดข้อมูลไม่สำเร็จ</td></tr>";
+      list.innerHTML = "<tr><td colspan='2' style='text-align:center; color:red;'>โหลดข้อมูลไม่สำเร็จ</td></tr>";
     }
   }
 </script>
