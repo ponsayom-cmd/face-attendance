@@ -1,39 +1,46 @@
 /**
- * GOOGLE APPS SCRIPT - v4.0 (Ultra Fast Edition)
- * ปรับปรุงเพื่อความเร็วสูงสุด ลดอาการค้าง
+ * GOOGLE APPS SCRIPT - v4.1 (Anti-Duplicate Attendance)
  */
 
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheet = ss.getSheetByName('Users') || ss.insertSheet('Users');
     
     if (data.action === 'registerUser') {
-      // บันทึกข้อมูลแบบ Raw เพื่อความเร็วสูงสุด
-      sheet.appendRow([
-        String(data.id),
-        String(data.name),
-        String(data.year),
-        data.desc, // ข้อมูลที่ถูกย่อขนาดมาแล้วจากฝั่งหน้าเว็บ
-        new Date()
-      ]);
-      return ContentService.createTextOutput(JSON.stringify({success: true})).setMimeType(ContentService.MimeType.JSON);
+      const sheet = ss.getSheetByName('Users') || ss.insertSheet('Users');
+      sheet.appendRow([String(data.id), String(data.name), String(data.year), data.desc, new Date()]);
+      return jsonResponse({success: true});
     }
     
     if (data.action === 'logAttendance') {
       const attSheet = ss.getSheetByName('Attendance') || ss.insertSheet('Attendance');
       const now = new Date();
+      const dateStr = Utilities.formatDate(now, "GMT+7", "yyyy-MM-dd");
+      
+      // --- ตรวจสอบการเช็คชื่อซ้ำในวันเดียวกัน ---
+      const logs = attSheet.getDataRange().getValues();
+      const isDuplicate = logs.some(row => 
+        row[0] === data.name && 
+        row[1] === data.subject && 
+        Utilities.formatDate(new Date(row[3]), "GMT+7", "yyyy-MM-dd") === dateStr
+      );
+      
+      if (isDuplicate) {
+        return jsonResponse({success: false, message: 'คุณเช็คชื่อวิชานี้ไปแล้วในวันนี้'});
+      }
+
       attSheet.appendRow([
         data.name, data.subject, 
         Utilities.formatDate(now, "GMT+7", "HH:mm:ss"), 
-        "'" + Utilities.formatDate(now, "GMT+7", "yyyy-MM-dd"), 
-        data.lat, data.lng
+        "'" + dateStr, 
+        data.lat, data.lng,
+        `https://www.google.com/maps?q=${data.lat},${data.lng}`
       ]);
-      return ContentService.createTextOutput(JSON.stringify({success: true})).setMimeType(ContentService.MimeType.JSON);
+      return jsonResponse({success: true});
     }
   } catch (f) {
-    return ContentService.createTextOutput(JSON.stringify({success: false, error: f.toString()})).setMimeType(ContentService.MimeType.JSON);
+    return jsonResponse({success: false, error: f.toString()});
   }
 }
 
@@ -43,16 +50,20 @@ function doGet(e) {
   
   if (action === 'getKnownFaces') {
     const sheet = ss.getSheetByName('Users');
-    if (!sheet) return ContentService.createTextOutput("[]").setMimeType(ContentService.MimeType.JSON);
+    if (!sheet) return jsonResponse([]);
     const data = sheet.getDataRange().getValues().slice(1);
     const result = data.map(r => ({ name: r[1], descriptor: JSON.parse(r[3]) }));
-    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+    return jsonResponse(result);
   }
   
   if (action === 'getSubjects') {
-    const sheet = ss.getSheetByName('Subjects');
+    const sheet = ss.getSheetByName('Subjects') || ss.insertSheet('Subjects');
     const data = sheet.getDataRange().getValues().slice(1);
-    return ContentService.createTextOutput(JSON.stringify(data.map(r => ({ code: r[0], name: r[1] })))).setMimeType(ContentService.MimeType.JSON);
+    return jsonResponse(data.map(r => ({ code: r[0], name: r[1] })));
   }
   return ContentService.createTextOutput("Ready").setMimeType(ContentService.MimeType.TEXT);
+}
+
+function jsonResponse(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
