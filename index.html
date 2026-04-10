@@ -3,18 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Attendance v5.4</title>
+  <title>Smart Attendance v5.8</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
     :root { --p: #6366f1; --bg: #f8fafc; }
     body { font-family: 'Sarabun', sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
     .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); width: 100%; max-width: 400px; margin-bottom: 15px; }
-    select, input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #ddd; }
+    select { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid #ddd; font-family: inherit; }
     .btn { background: var(--p); color: white; border: none; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; }
     .menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; max-width: 400px; }
-    .btn-sub { background: white; color: #444; border: 1px solid #ddd; padding: 15px; border-radius: 12px; text-decoration: none; text-align: center; font-size: 14px; }
-    .status { font-size: 11px; text-align: center; margin-top: 5px; }
+    .btn-sub { background: white; color: #444; border: 1px solid #ddd; padding: 15px; border-radius: 12px; text-decoration: none; text-align: center; font-size: 14px; transition: 0.2s; }
+    .btn-sub:active { transform: scale(0.95); background: #f1f5f9; }
+    .status { font-size: 11px; text-align: center; margin-top: 10px; color: #94a3b8; }
   </style>
 </head>
 <body>
@@ -28,19 +29,21 @@
 
   <div class="menu-grid">
     <a href="register.html" class="btn-sub"><i class="fas fa-user-plus"></i><br>ลงทะเบียน</a>
-    <a href="subjects.html" class="btn-sub"><i class="fas fa-book"></i><br>จัดการวิชา</a>
+    <!-- แก้ไขลิงก์ให้ตรงกับชื่อไฟล์ของคุณ -->
+    <a href="manage_subjects.html" class="btn-sub"><i class="fas fa-book"></i><br>จัดการวิชา</a>
     <a href="report.html" class="btn-sub"><i class="fas fa-chart-bar"></i><br>ดูรายงาน</a>
-    <div class="btn-sub" onclick="setApi()"><i class="fas fa-cog"></i><br>ตั้งค่า API</div>
+    <div class="btn-sub" onclick="setApi()" style="cursor:pointer;"><i class="fas fa-cog"></i><br>ตั้งค่า API</div>
   </div>
 
-  <div id="api-status" class="status"></div>
+  <div id="api-status" class="status">ตรวจสอบการเชื่อมต่อ...</div>
 
 <script>
   let API = localStorage.getItem('gas_v5') || '';
 
   window.onload = async () => {
     if(!API) {
-      setApi();
+      const url = prompt("ระบุ URL Web App ของคุณ:");
+      if(url) { localStorage.setItem('gas_v5', url); location.reload(); }
     } else {
       loadSubjects();
     }
@@ -52,19 +55,18 @@
       const data = await res.json();
       const s = document.getElementById('sel-sub');
       s.innerHTML = '<option value="">-- เลือกวิชา --</option>';
-      data.forEach(v => s.innerHTML += `<option value="${v.name}">${v.name}</option>`);
-      document.getElementById('api-status').innerHTML = "✅ ระบบออนไลน์";
+      if(Array.isArray(data)) {
+        data.forEach(v => s.innerHTML += `<option value="${v.name}">${v.name}</option>`);
+        document.getElementById('api-status').innerText = "✅ เชื่อมต่อ Server สำเร็จ";
+      }
     } catch(e) {
-      document.getElementById('api-status').innerHTML = "❌ ติดต่อ Server ไม่ได้";
+      document.getElementById('api-status').innerText = "❌ เชื่อมต่อไม่ได้ กรุณาเช็ค URL API";
     }
   }
 
   function setApi() {
     const url = prompt("ระบุ URL Web App (/exec):", API);
-    if(url) {
-      localStorage.setItem('gas_v5', url);
-      location.reload();
-    }
+    if(url) { localStorage.setItem('gas_v5', url); location.reload(); }
   }
 
   function goScan() {
