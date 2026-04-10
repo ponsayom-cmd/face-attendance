@@ -17,91 +17,57 @@
     .page { display: none; padding: 25px 20px; max-width: 500px; margin: 0 auto; }
     .page.active { display: block; animation: fadeIn 0.3s; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-    .header-section { margin-bottom: 20px; }
-    .header-section h1 { font-size: 24px; font-weight: 700; color: var(--text-main); }
-    .header-section p { color: var(--text-sub); font-size: 14px; }
     .card { background: var(--card); border-radius: 24px; padding: 20px; margin-bottom: 15px; border: 1px solid var(--border); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-    label { display: block; font-size: 13px; font-weight: 600; color: var(--text-sub); margin-bottom: 8px; margin-left: 5px; }
     input, select { width: 100%; padding: 14px 18px; border-radius: 16px; background: #fdfdfd; border: 1px solid var(--border); color: var(--text-main); margin-bottom: 15px; outline: none; font-size: 15px; }
     .btn { padding: 16px 24px; border-radius: 18px; border: none; font-weight: 700; cursor: pointer; transition: 0.3s; display: inline-flex; align-items: center; gap: 10px; font-size: 15px; justify-content: center; width: 100%; }
     .btn-primary { background: linear-gradient(135deg, var(--primary), var(--secondary)); color: white; box-shadow: 0 8px 20px rgba(124, 156, 248, 0.3); }
-    .btn-outline { background: white; border: 1px solid var(--border); color: var(--text-sub); font-size: 13px; padding: 8px 12px; border-radius: 12px; width: auto; }
     .data-table { width: 100%; border-collapse: collapse; }
-    .data-table th { text-align: left; padding: 10px; font-size: 12px; color: var(--text-sub); border-bottom: 1px solid var(--border); }
     .data-table td { padding: 12px 10px; font-size: 14px; border-bottom: 1px solid var(--border); }
-    .badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; background: #ecfdf5; color: #10b981; }
-    .empty-state { text-align: center; padding: 40px 10px; color: var(--text-sub); }
-    .empty-state i { font-size: 40px; margin-bottom: 10px; opacity: 0.2; }
-    .fab { position: fixed; bottom: 100px; right: 20px; width: 56px; height: 56px; border-radius: 28px; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 20px rgba(110, 231, 183, 0.4); text-decoration: none; font-size: 24px; z-index: 999; }
-    .loading-spinner { width: 22px; height: 22px; border: 3px solid rgba(124,156,248,0.2); border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .loading-spinner { width: 22px; height: 22px; border: 3px solid rgba(124,156,248,0.2); border-top: 3px solid var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 10px auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-  <!-- หน้า 1: เช็คชื่อ -->
   <div id="home" class="page active">
-    <div class="header-section"><h1>หน้าแรก 👋</h1><p>เลือกรหัสวิชาเพื่อเริ่มสแกนใบหน้า</p></div>
+    <div class="header-section"><h1>สวัสดีครับ 👋</h1><p>ระบบเช็คชื่ออัจฉริยะ</p></div>
     <div class="card">
-      <label>รายวิชาที่เปิดสอน</label>
-      <select id="subjectSelect"><option value="">-- กำลังโหลดข้อมูล... --</option></select>
+      <label style="font-size:12px;color:var(--text-sub)">เลือกรายวิชาเพื่อเริ่มสแกน</label>
+      <select id="subjectSelect"><option value="">-- กำลังโหลด... --</option></select>
       <button class="btn btn-primary" onclick="goToScan()"><i class="fas fa-camera"></i> เปิดกล้องสแกน</button>
     </div>
     <div class="card">
-      <label>Google Apps Script URL</label>
-      <input type="text" id="apiUrl" placeholder="วาง URL /exec ที่นี่..." onchange="saveConfig()">
-      <div id="apiStatus" style="font-size: 12px; text-align: center; font-weight: bold;"></div>
+      <label style="font-size:12px;color:var(--text-sub)">Google Script Web App URL</label>
+      <input type="text" id="apiUrl" placeholder="วาง URL ที่นี่..." onchange="saveConfig()">
+      <div id="apiStatus" style="font-size: 12px; text-align: center;"></div>
     </div>
   </div>
 
-  <!-- หน้า 2: นักศึกษา -->
   <div id="users" class="page">
-    <div class="header-section"><h1>นักศึกษา</h1><p>รายชื่อผู้ที่ลงทะเบียนใบหน้าแล้ว</p></div>
+    <div class="header-section"><h1>นักศึกษา</h1><p>รายชื่อที่ลงทะเบียนแล้ว</p></div>
     <div class="card" style="padding: 10px;">
-      <table class="data-table">
-        <thead><tr><th>ชื่อ-นามสกุล</th><th style="text-align:right">ลบ</th></tr></thead>
-        <tbody id="userBody"></tbody>
-      </table>
-      <div id="userEmpty" class="empty-state" style="display:none;"><i class="fas fa-users-slash"></i><p>ไม่พบนักศึกษา</p></div>
+      <table class="data-table"><tbody id="userBody"></tbody></table>
+      <div id="userEmpty" style="text-align:center;padding:20px;color:var(--text-sub)">ไม่พบข้อมูลนักศึกษา</div>
     </div>
-    <a href="register.html" class="fab"><i class="fas fa-plus"></i></a>
+    <a href="register.html" style="position:fixed;bottom:100px;right:20px;background:var(--accent);color:white;width:56px;height:56px;border-radius:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 20px rgba(0,0,0,0.1);text-decoration:none"><i class="fas fa-plus"></i></a>
   </div>
 
-  <!-- หน้า 3: รายงาน -->
-  <div id="report" class="page">
-    <div class="header-section"><h1>ประวัติเข้าเรียน</h1><p>ข้อมูลการสแกนใบหน้าวันนี้</p></div>
-    <div class="card" style="padding: 10px;">
-      <table class="data-table">
-        <thead><tr><th>นักศึกษา</th><th>วิชา</th><th>เวลา</th></tr></thead>
-        <tbody id="reportBody"></tbody>
-      </table>
-      <div id="reportEmpty" class="empty-state" style="display:none;"><i class="fas fa-calendar-times"></i><p>ยังไม่มีประวัติ</p></div>
-    </div>
-  </div>
-
-  <!-- หน้า 4: วิชา -->
   <div id="settings" class="page">
-    <div class="header-section"><h1>รายวิชา</h1><p>เพิ่มรายวิชาใหม่ลงในระบบ</p></div>
+    <div class="header-section"><h1>เพิ่มวิชา</h1><p>จัดการรายวิชาในระบบ</p></div>
     <div class="card">
-      <input type="text" id="newSubCode" placeholder="รหัสวิชา (เช่น CS101)">
-      <input type="text" id="newSubName" placeholder="ชื่อวิชา (เช่น พื้นฐานโปรแกรมมิ่ง)">
-      <button id="addSubjectBtn" class="btn btn-primary" style="background: var(--accent);" onclick="addSubject()">
-        <i class="fas fa-save"></i> บันทึกวิชา
-      </button>
+      <input type="text" id="newSubCode" placeholder="รหัสวิชา">
+      <input type="text" id="newSubName" placeholder="ชื่อวิชา">
+      <button id="addBtn" class="btn btn-primary" style="background: var(--accent);" onclick="addSubject()">บันทึกวิชา</button>
     </div>
     <div class="card" style="padding: 10px;">
-      <table class="data-table">
-        <thead><tr><th>รหัส</th><th>ชื่อวิชา</th></tr></thead>
-        <tbody id="subjectBody"></tbody>
-      </table>
+      <table class="data-table"><tbody id="subjectBody"></tbody></table>
     </div>
   </div>
 
   <nav class="nav-bottom">
     <div class="nav-item active" onclick="showPage('home')"><i class="fas fa-home"></i>หน้าหลัก</div>
-    <div class="nav-item" onclick="onclick=showPage('users')"><i class="fas fa-user-graduate"></i>นักศึกษา</div>
-    <div class="nav-item" onclick="showPage('report')"><i class="fas fa-file-invoice"></i>รายงาน</div>
-    <div class="nav-item" onclick="showPage('settings')"><i class="fas fa-book-open"></i>วิชา</div>
+    <div class="nav-item" onclick="showPage('users')"><i class="fas fa-user-graduate"></i>นักศึกษา</div>
+    <div class="nav-item" onclick="showPage('settings')"><i class="fas fa-book"></i>วิชา</div>
   </nav>
 
 <script>
@@ -109,21 +75,8 @@
   
   window.onload = () => {
     document.getElementById('apiUrl').value = API_URL;
-    if(API_URL) {
-      loadSubjects();
-      checkApi();
-    }
+    if(API_URL) loadSubjects();
   };
-
-  async function checkApi() {
-    const el = document.getElementById('apiStatus');
-    el.innerHTML = '<span style="color:#64748b">กำลังตรวจสอบการเชื่อมต่อ...</span>';
-    try {
-      const res = await fetch(API_URL + '?action=getSubjects');
-      if(res.ok) el.innerHTML = '<span style="color:#10b981">● เชื่อมต่อกับ Sheet สำเร็จ</span>';
-      else throw new Error();
-    } catch(e) { el.innerHTML = '<span style="color:#ef4444">● เชื่อมต่อล้มเหลว (เช็ค URL)</span>'; }
-  }
 
   function showPage(id) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -131,14 +84,13 @@
     document.getElementById(id).classList.add('active');
     event.currentTarget.classList.add('active');
     if(id === 'users') loadUsers();
-    if(id === 'report') loadReports();
     if(id === 'settings' || id === 'home') loadSubjects();
   }
 
   async function loadSubjects() {
     if(!API_URL) return;
     try {
-      const res = await fetch(API_URL + '?action=getSubjects');
+      const res = await fetch(`${API_URL}?action=getSubjects&t=${Date.now()}`);
       const data = await res.json();
       const select = document.getElementById('subjectSelect');
       const tbody = document.getElementById('subjectBody');
@@ -149,90 +101,65 @@
           select.innerHTML += `<option value="${s.name}">${s.code} ${s.name}</option>`;
           tbody.innerHTML += `<tr><td><b>${s.code}</b></td><td>${s.name}</td></tr>`;
         });
+        document.getElementById('apiStatus').innerHTML = '<span style="color:#10b981">✅ เชื่อมต่อสำเร็จ</span>';
       } else {
-        select.innerHTML = '<option value="">ยังไม่มีข้อมูลวิชา</option>';
+        select.innerHTML = '<option value="">ยังไม่มีวิชา</option>';
       }
-    } catch(e) { console.error(e); }
+    } catch(e) { document.getElementById('apiStatus').innerHTML = '<span style="color:#ef4444">❌ เชื่อมต่อล้มเหลว</span>'; }
   }
 
   async function loadUsers() {
     if(!API_URL) return;
     const tbody = document.getElementById('userBody');
     const empty = document.getElementById('userEmpty');
-    tbody.innerHTML = '<tr><td colspan="2" style="text-align:center"><div class="loading-spinner" style="margin:auto"></div></td></tr>';
+    tbody.innerHTML = '<tr><td><div class="loading-spinner"></div></td></tr>';
     try {
-      const res = await fetch(API_URL + '?action=getKnownFaces');
+      const res = await fetch(`${API_URL}?action=getKnownFaces&t=${Date.now()}`);
       const data = await res.json();
       tbody.innerHTML = '';
       if(Array.isArray(data) && data.length > 0) {
         empty.style.display = 'none';
         data.forEach(u => {
-          tbody.innerHTML += `<tr><td><b>${u.name}</b></td><td style="text-align:right"><button class="btn-outline" style="color:#ef4444" onclick="deleteUser('${u.name}')"><i class="fas fa-trash-alt"></i></button></td></tr>`;
-        });
-      } else { empty.style.display = 'block'; }
-    } catch(e) { tbody.innerHTML = ''; empty.style.display = 'block'; }
-  }
-
-  async function loadReports() {
-    if(!API_URL) return;
-    const tbody = document.getElementById('reportBody');
-    const empty = document.getElementById('reportEmpty');
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center"><div class="loading-spinner" style="margin:auto"></div></td></tr>';
-    try {
-      const res = await fetch(API_URL + '?action=getAttendance');
-      const data = await res.json();
-      tbody.innerHTML = '';
-      if(Array.isArray(data) && data.length > 0) {
-        empty.style.display = 'none';
-        data.forEach(r => {
-          tbody.innerHTML += `<tr><td>${r.name}</td><td><span class="badge">${r.subject}</span></td><td style="font-size:11px;color:#94a3b8">${r.date}<br>${r.time}</td></tr>`;
+          tbody.innerHTML += `<tr><td><b>${u.name}</b></td><td style="text-align:right;color:#ef4444" onclick="deleteUser('${u.name}')"><i class="fas fa-trash"></i></td></tr>`;
         });
       } else { empty.style.display = 'block'; }
     } catch(e) { tbody.innerHTML = ''; empty.style.display = 'block'; }
   }
 
   async function addSubject() {
-    const code = document.getElementById('newSubCode').value.trim();
-    const name = document.getElementById('newSubName').value.trim();
-    if(!code || !name) return alert('กรุณากรอกรหัสและชื่อวิชา');
-    const btn = document.getElementById('addSubjectBtn');
+    const code = document.getElementById('newSubCode').value;
+    const name = document.getElementById('newSubName').value;
+    if(!code || !name) return alert('กรุณากรอกข้อมูลให้ครบ');
+    const btn = document.getElementById('addBtn');
     btn.disabled = true;
-    btn.innerHTML = 'กำลังบันทึก...';
     try {
-      const res = await fetch(API_URL, { 
-        method: 'POST', 
-        body: JSON.stringify({ action: 'addSubject', code, name }) 
-      });
+      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'addSubject', code, name }) });
       const result = await res.json();
       if(result.success) {
+        alert('เพิ่มวิชาสำเร็จ');
         document.getElementById('newSubCode').value = '';
         document.getElementById('newSubName').value = '';
-        await loadSubjects();
-        alert('เพิ่มรายวิชาสำเร็จ!');
+        loadSubjects();
       }
-    } catch(e) { alert('ไม่สามารถเพิ่มวิชาได้'); }
+    } catch(e) { alert('เกิดข้อผิดพลาด'); }
     btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-save"></i> บันทึกวิชา';
   }
 
   async function deleteUser(name) {
-    if(!confirm('คุณต้องการลบรายชื่อนักศึกษาคนนี้ใช่หรือไม่?')) return;
-    try {
-      await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteUser', name }) });
-      loadUsers();
-    } catch(e) { alert('ไม่สามารถลบได้'); }
+    if(!confirm('ลบรายชื่อนี้?')) return;
+    await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'deleteUser', name }) });
+    loadUsers();
   }
 
   function saveConfig() {
     API_URL = document.getElementById('apiUrl').value.trim();
     localStorage.setItem('gasApiUrl', API_URL);
-    checkApi();
     loadSubjects();
   }
 
   function goToScan() {
     const sub = document.getElementById('subjectSelect').value;
-    if(!sub) return alert('กรุณาเลือกวิชาก่อนสแกน');
+    if(!sub) return alert('เลือกวิชาก่อน');
     localStorage.setItem('currentSubject', sub);
     window.location.href = 'scan.html';
   }
