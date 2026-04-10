@@ -3,152 +3,192 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>สแกนเข้าเรียน v5.9.1</title>
+  <title>สแกนเข้าเรียน v6.5</title>
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    :root { --p: #6366f1; --err: #ef4444; --success: #10b981; }
-    body { font-family: 'Sarabun', sans-serif; background: #f8fafc; margin: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
-    .header { text-align: center; margin-bottom: 20px; }
-    .video-container { position: relative; width: 90%; max-width: 400px; border-radius: 30px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); border: 5px solid white; }
-    video { width: 100%; transform: scaleX(-1); display: block; }
+    :root { --p: #6366f1; --bg: #0f172a; --success: #10b981; }
+    body { font-family: 'Sarabun', sans-serif; background: var(--bg); color: white; margin: 0; padding: 15px; overflow: hidden; display: flex; flex-direction: column; align-items: center; height: 100vh; }
+    .header { text-align: center; margin-bottom: 10px; width: 100%; }
+    .video-wrapper { position: relative; width: 100%; max-width: 640px; border-radius: 20px; overflow: hidden; box-shadow: 0 0 30px rgba(99, 102, 241, 0.3); border: 2px solid #334155; }
+    video { width: 100%; display: block; transform: scaleX(-1); }
     canvas { position: absolute; top: 0; left: 0; transform: scaleX(-1); }
-    .overlay { position: fixed; bottom: 40px; background: white; padding: 15px 30px; border-radius: 50px; box-shadow: 0 10px 15px rgba(0,0,0,0.1); font-weight: bold; color: var(--p); z-index: 10; }
-    .btn-back { position: fixed; top: 20px; left: 20px; text-decoration: none; color: #64748b; font-size: 14px; background: white; padding: 8px 15px; border-radius: 10px; }
-    .loading-screen { position: fixed; inset: 0; background: white; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; }
-    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--p); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+    .status-panel { margin-top: 15px; padding: 15px; background: rgba(30, 41, 59, 0.8); border-radius: 15px; width: 90%; max-width: 400px; text-align: center; border: 1px solid #334155; }
+    .user-name { font-size: 1.5rem; font-weight: bold; color: var(--success); margin: 5px 0; }
+    .btn-back { position: fixed; bottom: 20px; background: rgba(255,255,255,0.1); color: white; padding: 10px 20px; border-radius: 30px; text-decoration: none; font-size: 14px; backdrop-filter: blur(5px); }
+    #loader-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .spinner { border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--p); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
     @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 
-  <div id="loading" class="loading-screen">
+  <div id="loader-overlay">
     <div class="spinner"></div>
-    <p style="margin-top:15px">กำลังโหลดข้อมูลใบหน้าจากระบบ...</p>
+    <p id="loader-text" style="margin-top:20px;">กำลังเตรียมฐานข้อมูลใบหน้า...</p>
   </div>
-
-  <a href="index.html" class="btn-back">← กลับ</a>
 
   <div class="header">
-    <h3 id="txt-sub">วิชา: ...</h3>
-    <div id="status-icon" style="color: var(--success); font-size: 14px;">🟢 ระบบพร้อมสแกน</div>
+    <h2 style="margin:5px 0;">สแกนใบหน้าเข้าเรียน</h2>
+    <div id="subject-display" style="color: #94a3b8; font-size: 14px;"></div>
   </div>
 
-  <div class="video-container">
+  <div class="video-wrapper">
     <video id="video" autoplay muted playsinline></video>
+    <canvas id="overlay"></canvas>
   </div>
 
-  <div id="msg" class="overlay">กรุณาวางใบหน้าให้ตรงกรอบ</div>
+  <div class="status-panel">
+    <div id="scan-status">กำลังมองหาใบหน้า...</div>
+    <div id="detected-name" class="user-name"></div>
+  </div>
+
+  <a href="index.html" class="btn-back">ยกเลิก / กลับ</a>
 
 <script>
   const API = localStorage.getItem('gas_v5');
-  const subject = localStorage.getItem('currentSubject');
+  const selectedSubject = localStorage.getItem('current_subject') || "ไม่ได้เลือกวิชา";
   const video = document.getElementById('video');
-  const msg = document.getElementById('msg');
+  const canvas = document.getElementById('overlay');
+  const loaderOverlay = document.getElementById('loader-overlay');
+  const loaderText = document.getElementById('loader-text');
+  
   let faceMatcher = null;
-  let isProcessing = false;
+  let lastLoggedUser = "";
+  let lastLogTime = 0;
 
-  async function init() {
-    // 1. ตรวจสอบความถูกต้องของ URL และ วิชา
-    if(!API || API.trim() === "" || !subject) {
-      alert("ไม่พบข้อมูลการตั้งค่า กรุณากลับไปหน้าหลัก");
-      window.location.href = "index.html";
-      return;
-    }
-    document.getElementById('txt-sub').innerText = `วิชา: ${subject}`;
+  document.getElementById('subject-display').innerText = `วิชา: ${selectedSubject}`;
 
+  window.onload = async () => {
+    if(!API) return location.href = "index.html";
+    
     try {
-      // 2. โหลดโมเดล AI
       const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
+      
+      // 1. โหลดโมเดล
+      loaderText.innerText = "กำลังโหลด AI Model...";
       await Promise.all([
         faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
         faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
         faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
       ]);
 
-      // 3. ดึงข้อมูลใบหน้า
-      const res = await fetch(`${API}?action=getKnownFaces&t=${Date.now()}`);
-      const knownFaces = await res.json();
+      // 2. ดึงข้อมูลจากฐานข้อมูล
+      loaderText.innerText = "กำลังดึงรายชื่อนักศึกษา...";
+      const response = await fetch(`${API}?action=getKnownFaces&t=${Date.now()}`);
+      const users = await response.json();
 
-      // ตรวจสอบข้อมูลใบหน้า
-      if (!Array.isArray(knownFaces) || knownFaces.length === 0) {
-        alert("ไม่พบข้อมูลนักศึกษาในระบบ หรือข้อมูลใบหน้าว่างเปล่า");
-        window.location.href = "register.html";
+      if (users.length === 0) {
+        alert("ไม่พบข้อมูลนักศึกษาในฐานข้อมูล กรุณาลงทะเบียนก่อน");
+        location.href = "register.html";
         return;
       }
 
-      // 4. สร้าง FaceMatcher
-      const labeledDescriptors = knownFaces
-        .filter(f => f.descriptor && Array.isArray(f.descriptor) && f.descriptor.length > 0)
-        .map(f => new faceapi.LabeledFaceDescriptors(f.name, [new Float32Array(f.descriptor)]));
+      // 3. สร้าง Face Matcher
+      const labeledDescriptors = users
+        .filter(u => u.descriptor && u.descriptor.length > 0)
+        .map(u => new faceapi.LabeledFaceDescriptors(u.name, [new Float32Array(u.descriptor)]));
 
       if (labeledDescriptors.length === 0) {
-        alert("ข้อมูลใบหน้าในระบบไม่ถูกต้อง กรุณาลงทะเบียนใหม่");
-        window.location.href = "register.html";
+        alert("ข้อมูลใบหน้าไม่สมบูรณ์ กรุณาลงทะเบียนใหม่");
+        location.href = "register.html";
         return;
       }
 
-      faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55);
+      faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.55); // Threshold 0.55 (แม่นยำกลางๆ)
 
-      // 5. เปิดกล้อง
-      const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+      // 4. เปิดกล้อง
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
       video.srcObject = stream;
       
-      document.getElementById('loading').style.display = 'none';
-      startScan();
+      video.onloadedmetadata = () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        loaderOverlay.style.display = 'none';
+        startScanning();
+      };
 
-    } catch (e) {
-      console.error(e);
-      alert("เกิดข้อผิดพลาดในการโหลดระบบ: " + e.message);
-      window.location.href = "index.html";
+    } catch (err) {
+      console.error(err);
+      alert("เกิดข้อผิดพลาดในการโหลดระบบ: " + err.message);
     }
-  }
+  };
 
-  async function startScan() {
-    if(isProcessing) return;
+  async function startScanning() {
+    const displaySize = { width: video.videoWidth, height: video.videoHeight };
+    faceapi.matchDimensions(canvas, displaySize);
 
-    const detection = await faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-      .withFaceLandmarks()
-      .withFaceDescriptor();
-
-    if (detection) {
-      const bestMatch = faceMatcher.findBestMatch(detection.descriptor);
+    setInterval(async () => {
+      const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+        .withFaceLandmarks()
+        .withFaceDescriptors();
       
-      if (bestMatch.label !== 'unknown') {
-        msg.innerText = `✅ พบคุณ ${bestMatch.label}`;
-        msg.style.color = "var(--success)";
-        logAttendance(bestMatch.label);
-      } else {
-        msg.innerText = "❌ ไม่พบข้อมูล (Unknown Face)";
-        msg.style.color = "var(--err)";
-        setTimeout(startScan, 600);
+      const resizedDetections = faceapi.resizeResults(detections, displaySize);
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const results = resizedDetections.map(d => faceMatcher.findBestMatch(d.descriptor));
+
+      results.forEach((result, i) => {
+        const box = resizedDetections[i].detection.box;
+        const name = result.label;
+        const distance = (1 - result.distance).toFixed(2);
+        
+        // วาดกรอบสแกน
+        const drawBox = new faceapi.draw.DrawBox(box, { 
+            label: name === "unknown" ? "ไม่รู้จัก" : `${name} (${Math.round(distance*100)}%)`,
+            boxColor: name === "unknown" ? "#ef4444" : "#10b981"
+        });
+        drawBox.draw(canvas);
+
+        // บันทึกเวลาเข้าเรียนเมื่อหน้าตรง (Confidence > 60%)
+        if (name !== "unknown" && distance > 0.60) {
+          handleAttendance(name);
+        }
+      });
+
+      if(results.length === 0) {
+        document.getElementById('scan-status').innerText = "🔍 กำลังมองหาใบหน้า...";
+        document.getElementById('detected-name').innerText = "";
       }
-    } else {
-      msg.innerText = "กรุณาวางใบหน้าให้ตรงกรอบ";
-      msg.style.color = "var(--p)";
-      setTimeout(startScan, 600);
-    }
+    }, 500);
   }
 
-  async function logAttendance(name) {
-    isProcessing = true;
+  async function handleAttendance(name) {
+    const now = Date.now();
+    // ป้องกันการบันทึกซ้ำภายใน 30 วินาที
+    if (name === lastLoggedUser && (now - lastLogTime) < 30000) return;
+
+    lastLoggedUser = name;
+    lastLogTime = now;
+    
+    document.getElementById('scan-status').innerText = "✅ บันทึกสำเร็จ!";
+    document.getElementById('detected-name').innerText = name;
+
     try {
       await fetch(API, {
         method: 'POST',
-        body: JSON.stringify({ action: 'logAttendance', name, subject })
+        body: JSON.stringify({
+          action: 'logAttendance',
+          name: name,
+          subject: selectedSubject
+        })
       });
-      msg.innerText = `เช็คชื่อสำเร็จ: ${name}`;
+      
+      // เสียงแจ้งเตือน (ถ้าต้องการ) หรือสั่น
+      if (navigator.vibrate) navigator.vibrate(200);
+      
       setTimeout(() => {
-        isProcessing = false;
-        startScan();
+          if(lastLoggedUser === name) {
+              document.getElementById('scan-status').innerText = "🔍 พร้อมสแกนคนต่อไป...";
+              document.getElementById('detected-name').innerText = "";
+          }
       }, 3000);
+
     } catch (e) {
-      isProcessing = false;
-      startScan();
+      console.error("Log error:", e);
     }
   }
-
-  window.onload = init;
 </script>
 </body>
 </html>
