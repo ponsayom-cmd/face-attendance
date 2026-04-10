@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>สแกนเข้าเรียน - เลือกรายวิชา</title>
+  <title>ระบบเช็คชื่ออัจฉริยะ</title>
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.js"></script>
   <style>
-    :root { --primary: #10b981; --bg: #0f172a; --card: #1e293b; }
+    :root { --primary: #10b981; --bg: #0f172a; --card: #1e293b; --accent: #6366f1; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: 'Sarabun', sans-serif;
@@ -19,104 +19,130 @@
       padding: 20px;
       min-height: 100vh;
     }
-    .container { max-width: 500px; width: 100%; background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid #334155; }
+    .container { max-width: 500px; width: 100%; background: var(--card); padding: 25px; border-radius: 24px; border: 1px solid #334155; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.3); }
+    h1 { font-size: 22px; text-align: center; margin-bottom: 20px; color: #fff; }
+    
     .form-group { margin-bottom: 20px; }
-    label { display: block; margin-bottom: 8px; color: #94a3b8; font-size: 14px; }
+    label { display: block; margin-bottom: 8px; color: #94a3b8; font-size: 14px; font-weight: 600; }
     select {
       width: 100%;
-      padding: 14px;
-      border-radius: 12px;
-      border: 1px solid #334155;
+      padding: 15px;
+      border-radius: 14px;
+      border: 2px solid #334155;
       background: #0f172a;
       color: white;
       font-size: 16px;
-      appearance: none;
+      outline: none;
+      transition: 0.3s;
     }
+    select:focus { border-color: var(--accent); }
+
     .video-wrap {
       position: relative;
       width: 100%;
       aspect-ratio: 4/3;
       background: #000;
-      border-radius: 16px;
+      border-radius: 20px;
       overflow: hidden;
       margin-bottom: 20px;
-      border: 2px solid #334155;
+      border: 3px solid #334155;
     }
     video { width: 100%; height: 100%; object-fit: cover; }
-    .scan-overlay {
-      position: absolute;
-      top: 0; left: 0; width: 100%; height: 100%;
-      display: flex; align-items: center; justify-content: center;
-      background: rgba(0,0,0,0.5);
-      z-index: 10;
+    
+    .status-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
     }
     .status-badge {
-      background: var(--primary);
-      padding: 8px 16px;
-      border-radius: 20px;
+      background: #334155;
+      padding: 10px 20px;
+      border-radius: 30px;
       font-size: 14px;
       font-weight: 600;
+      transition: 0.3s;
     }
-    .btn-start {
+    .status-badge.active { background: var(--primary); color: white; box-shadow: 0 0 15px var(--primary); }
+    .status-badge.detecting { background: var(--accent); color: white; animation: pulse 1.5s infinite; }
+
+    .btn-action {
       width: 100%;
-      padding: 16px;
-      border-radius: 12px;
+      padding: 18px;
+      border-radius: 15px;
       border: none;
-      background: var(--primary);
+      background: var(--accent);
       color: white;
       font-weight: 700;
+      font-size: 16px;
       cursor: pointer;
       transition: 0.3s;
     }
-    .btn-start:disabled { background: #475569; opacity: 0.5; }
-    
-    /* Modal ยืนยัน */
+    .btn-action:disabled { background: #475569; cursor: not-allowed; opacity: 0.6; }
+
+    /* Modal Styling */
     .modal {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8);
+      background: rgba(15, 23, 42, 0.95);
       display: none; align-items: center; justify-content: center; z-index: 100;
+      backdrop-filter: blur(8px);
     }
     .modal-content {
       background: var(--card);
-      padding: 30px;
-      border-radius: 20px;
+      padding: 40px 30px;
+      border-radius: 28px;
       text-align: center;
-      max-width: 90%;
+      width: 85%;
+      max-width: 400px;
+      border: 1px solid #475569;
+    }
+    .detected-name { font-size: 24px; font-weight: 700; color: var(--primary); margin: 15px 0; }
+    .detected-sub { color: #94a3b8; margin-bottom: 25px; }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.6; }
+      100% { opacity: 1; }
     }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <a href="index.html" style="color: #94a3b8; text-decoration: none; font-size: 14px; display: block; margin-bottom: 15px;">← กลับหน้าหลัก</a>
+  <a href="index.html" style="color: #94a3b8; text-decoration: none; font-size: 14px; display: inline-block; margin-bottom: 15px;">← ยกเลิก</a>
   <h1>เช็คชื่อเข้าเรียน</h1>
   
   <div class="form-group">
-    <label>เลือกวิชาที่เข้าเรียน</label>
+    <label>1. เลือกวิชาที่กำลังเข้าเรียน</label>
     <select id="subjectSelect">
       <option value="">-- กรุณาเลือกวิชา --</option>
     </select>
   </div>
 
-  <div class="video-wrap">
-    <video id="video" autoplay muted playsinline></video>
-    <div id="overlay" class="scan-overlay">
-       <div class="status-badge" id="statusBadge">รอโหลด AI...</div>
-    </div>
+  <div class="status-container">
+    <label>2. ส่องใบหน้าให้ตรงกรอบ</label>
+    <div id="statusBadge" class="status-badge">⏳ กำลังโหลดระบบ...</div>
   </div>
 
-  <button id="btnStart" class="btn-start" disabled>เริ่มการสแกนใบหน้า</button>
+  <div class="video-wrap">
+    <video id="video" autoplay muted playsinline></video>
+  </div>
+
+  <button id="btnStart" class="btn-action" disabled>กดเพื่อเริ่มสแกนอัตโนมัติ</button>
 </div>
 
-<!-- Modal ยืนยัน -->
+<!-- Modal ยืนยันการเช็คชื่อ -->
 <div id="confirmModal" class="modal">
   <div class="modal-content">
-    <h2 id="matchName" style="color: var(--primary);">พบข้อมูลนักศึกษา!</h2>
-    <p id="matchSubject" style="margin: 10px 0; color: #94a3b8;"></p>
-    <p>ต้องการยืนยันการเช็คชื่อหรือไม่?</p>
-    <div style="display: flex; gap: 10px; margin-top: 20px;">
-      <button id="btnConfirm" style="flex:1; background: var(--primary); padding: 12px; border:none; border-radius:10px; color:white; font-weight:bold; cursor:pointer;">ยืนยัน</button>
-      <button id="btnCancel" style="flex:1; background: #ef4444; padding: 12px; border:none; border-radius:10px; color:white; font-weight:bold; cursor:pointer;">ยกเลิก</button>
+    <div style="font-size: 50px; margin-bottom: 10px;">✅</div>
+    <h3>ยืนยันการเช็คชื่อ</h3>
+    <div id="matchName" class="detected-name">ชื่อนักศึกษา</div>
+    <div id="matchSubject" class="detected-sub">วิชา: -</div>
+    
+    <div style="display: flex; gap: 15px;">
+      <button id="btnConfirm" style="flex:2; background: var(--primary); padding: 15px; border:none; border-radius:12px; color:white; font-weight:bold; cursor:pointer;">ยืนยันเข้าเรียน</button>
+      <button id="btnCancel" style="flex:1; background: #334155; padding: 15px; border:none; border-radius:12px; color:white; font-weight:bold; cursor:pointer;">ไม่ใช่ฉัน</button>
     </div>
   </div>
 </div>
@@ -128,95 +154,120 @@
   const subjectSelect = document.getElementById('subjectSelect');
   const statusBadge = document.getElementById('statusBadge');
   
-  let knownFaces = [];
   let faceMatcher = null;
   let isScanning = false;
-  let currentLat = null;
-  let currentLng = null;
+  let currentLat = null, currentLng = null;
+  let scanInterval = null;
 
   async function init() {
     try {
-      // 1. โหลด AI
+      // 1. โหลด AI Models
+      statusBadge.innerText = '⚙️ กำลังโหลด AI...';
       await Promise.all([
         faceapi.nets.ssdMobilenetv1.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
         faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model'),
         faceapi.nets.faceRecognitionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model')
       ]);
 
-      // 2. ดึงรายชื่อวิชาและใบหน้า
-      if (!API_URL) throw new Error('ไม่พบ API URL');
+      if (!API_URL) throw new Error('กรุณาตั้งค่า API URL ก่อน');
       
+      // 2. ดึงข้อมูลรายวิชาและใบหน้า
+      statusBadge.innerText = '📥 กำลังดึงข้อมูลฐานข้อมูล...';
       const [subjects, faces] = await Promise.all([
         fetch(`${API_URL}?action=getSubjects`).then(r => r.json()),
         fetch(`${API_URL}?action=getKnownFaces`).then(r => r.json())
       ]);
 
-      // ใส่รายชื่อวิชาใน Select
+      // เติม Dropdown
       subjects.forEach(s => {
         const opt = document.createElement('option');
-        opt.value = `${s.code} - ${s.name}`;
+        opt.value = `${s.code} ${s.name}`;
         opt.innerText = `${s.code} - ${s.name}`;
         subjectSelect.appendChild(opt);
       });
 
-      // เตรียมตัวเปรียบเทียบใบหน้า
+      // สร้างตัวตรวจจับใบหน้า
       if (faces.length > 0) {
-        knownFaces = faces.map(f => new faceapi.LabeledFaceDescriptors(f.name, [new Float32Array(f.descriptor)]));
-        faceMatcher = new faceapi.FaceMatcher(knownFaces, 0.5);
+        const labeledDescriptors = faces.map(f => 
+          new faceapi.LabeledFaceDescriptors(f.name, [new Float32Array(f.descriptor)])
+        );
+        faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.5); // Threshold 0.5
+      } else {
+        throw new Error('ยังไม่มีนักศึกษาในระบบ');
       }
 
       // 3. เปิดกล้อง
-      const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640 } });
       video.srcObject = stream;
 
-      // 4. ขอพิกัด GPS
-      navigator.geolocation.getCurrentPosition(p => {
-        currentLat = p.coords.latitude;
-        currentLng = p.coords.longitude;
-      });
+      // 4. ขอพิกัด GPS (Background)
+      navigator.geolocation.getCurrentPosition(
+        p => { currentLat = p.coords.latitude; currentLng = p.coords.longitude; },
+        e => console.warn('GPS Error:', e.message)
+      );
 
       statusBadge.innerText = '✅ ระบบพร้อมทำงาน';
+      statusBadge.classList.add('active');
       btnStart.disabled = false;
+
     } catch (e) {
-      statusBadge.innerText = '❌ ผิดพลาด: ' + e.message;
+      statusBadge.innerText = '❌ ' + e.message;
       statusBadge.style.background = '#ef4444';
     }
   }
 
-  btnStart.addEventListener('click', startScan);
+  // เริ่มสแกนเมื่อกดปุ่ม
+  btnStart.addEventListener('click', () => {
+    if (!subjectSelect.value) {
+      alert('กรุณาเลือกรายวิชาก่อนสแกน');
+      return;
+    }
+    if (isScanning) return;
 
-  async function startScan() {
-    if (!subjectSelect.value) return alert('กรุณาเลือกวิชาก่อนสแกนใบหน้า');
-    
     isScanning = true;
     btnStart.disabled = true;
-    statusBadge.innerText = '🔍 กำลังค้นหาใบหน้า...';
-    document.getElementById('overlay').style.display = 'none';
+    btnStart.innerText = '🔍 กำลังค้นหาใบหน้าอัตโนมัติ...';
+    statusBadge.innerText = '🚀 กำลังสแกน...';
+    statusBadge.classList.remove('active');
+    statusBadge.classList.add('detecting');
 
-    const scanLoop = setInterval(async () => {
-      if (!isScanning) return clearInterval(scanLoop);
+    // เริ่ม Loop สแกนอัตโนมัติ
+    scanInterval = setInterval(async () => {
+      if (!isScanning) return;
 
-      const detection = await faceapi.detectSingleFace(video).withFaceLandmarks().withFaceDescriptor();
+      const detection = await faceapi.detectSingleFace(video)
+        .withFaceLandmarks()
+        .withFaceDescriptor();
       
       if (detection && faceMatcher) {
         const match = faceMatcher.findBestMatch(detection.descriptor);
+        
+        // ถ้าเจอชื่อ (Auto-detect success)
         if (match.label !== 'unknown') {
-          isScanning = false;
-          clearInterval(scanLoop);
-          showConfirm(match.label);
+          stopScan();
+          showConfirmModal(match.label);
         }
       }
-    }, 1000);
+    }, 800); // สแกนทุก 0.8 วินาที
+  });
+
+  function stopScan() {
+    isScanning = false;
+    if (scanInterval) clearInterval(scanInterval);
+    statusBadge.innerText = '🎯 พบใบหน้าแล้ว!';
+    statusBadge.classList.remove('detecting');
+    statusBadge.classList.add('active');
   }
 
-  function showConfirm(name) {
-    document.getElementById('matchName').innerText = 'สวัสดี! ' + name;
+  function showConfirmModal(name) {
+    document.getElementById('matchName').innerText = name;
     document.getElementById('matchSubject').innerText = 'วิชา: ' + subjectSelect.value;
     document.getElementById('confirmModal').style.display = 'flex';
 
+    // ปุ่มยืนยันบันทึกข้อมูล
     document.getElementById('btnConfirm').onclick = async () => {
       document.getElementById('btnConfirm').disabled = true;
-      document.getElementById('btnConfirm').innerText = 'กำลังบันทึก...';
+      document.getElementById('btnConfirm').innerText = '⏳ กำลังบันทึก...';
       
       try {
         const res = await fetch(API_URL, {
@@ -231,19 +282,22 @@
         });
         const result = await res.json();
         if (result.success) {
-          alert('เช็คชื่อสำเร็จ!');
+          alert('บันทึกเวลาเรียนสำเร็จ!');
           window.location.href = 'index.html';
         }
       } catch (e) {
-        alert('เกิดข้อผิดพลาดในการบันทึก');
+        alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+        document.getElementById('btnConfirm').disabled = false;
+        document.getElementById('btnConfirm').innerText = 'ยืนยันเข้าเรียน';
       }
     };
 
+    // ปุ่มยกเลิก/ไม่ใช่ฉัน
     document.getElementById('btnCancel').onclick = () => {
       document.getElementById('confirmModal').style.display = 'none';
       btnStart.disabled = false;
+      btnStart.innerText = 'กดเพื่อเริ่มสแกนอัตโนมัติ';
       statusBadge.innerText = '✅ ระบบพร้อมทำงาน';
-      document.getElementById('overlay').style.display = 'flex';
     };
   }
 
