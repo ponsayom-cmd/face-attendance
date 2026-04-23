@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>รายงานการเข้าเรียน</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="js/api-config.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Sarabun', sans-serif; min-height: 100vh; background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d1b2a 100%); color: #e2e8f0; display: flex; flex-direction: column; align-items: center; padding: 28px 16px 60px; position: relative; }
+    body::before { content: ''; position: fixed; width: 400px; height: 400px; background: #f59e0b; border-radius: 50%; filter: blur(120px); opacity: 0.07; top: -100px; right: -100px; pointer-events: none; z-index: 0; }
+    .container { width: 100%; max-width: 700px; position: relative; z-index: 1; animation: fadeIn 0.5s ease; }
+    .page-header { margin-bottom: 22px; }
+    .back-btn { display: inline-flex; align-items: center; gap: 6px; color: #64748b; text-decoration: none; font-size: 0.88em; padding: 6px 12px; border-radius: 20px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); transition: all 0.25s ease; margin-bottom: 14px; }
+    .back-btn:hover { color: #e2e8f0; background: rgba(255,255,255,0.1); }
+    h2 { font-size: 1.6em; font-weight: 700; background: linear-gradient(135deg, #fcd34d, #e2e8f0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 4px; }
+    .page-subtitle { font-size: 0.83em; color: #64748b; }
+    /* Filter bar */
+    .filter-bar { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-bottom: 18px; }
+    .filter-bar select, .filter-bar input { padding: 11px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; color: #e2e8f0; font-size: 14px; font-family: 'Sarabun', sans-serif; outline: none; transition: all 0.3s ease; }
+    .filter-bar select:focus, .filter-bar input:focus { border-color: rgba(245,158,11,0.5); box-shadow: 0 0 0 3px rgba(245,158,11,0.1); }
+    .filter-bar select option { background: #1e1e3f; }
+    .filter-bar input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); }
+    .btn-search { padding: 11px 20px; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; font-family: 'Sarabun', sans-serif; cursor: pointer; transition: all 0.25s ease; white-space: nowrap; }
+    .btn-search:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(245,158,11,0.4); }
+    /* Stats */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+    .stat-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 14px 16px; text-align: center; }
+    .stat-num  { font-size: 26px; font-weight: 700; color: #fcd34d; }
+    .stat-label{ font-size: 0.8em; color: #64748b; margin-top: 2px; }
+    /* Table card */
+    .table-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 18px; overflow: hidden; }
+    .table-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 14px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .table-title { font-size: 0.95em; font-weight: 600; color: #c7d2fe; }
+    .badge-count { background: rgba(99,102,241,0.2); color: #a5b4fc; font-size: 12px; padding: 3px 10px; border-radius: 20px; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    thead th { padding: 10px 14px; text-align: left; color: #64748b; font-size: 0.8em; font-weight: 600; letter-spacing: 0.04em; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.2s ease; }
+    tbody tr:hover { background: rgba(255,255,255,0.04); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td { padding: 10px 14px; color: #cbd5e1; vertical-align: middle; }
+    .td-id    { color: #64748b; font-size: 13px; }
+    .td-name  { font-weight: 600; color: #e2e8f0; }
+    .td-course{ color: #a5b4fc; font-size: 13px; }
+    .td-time  { color: #34d399; font-size: 13px; }
+    .td-map   { text-align: center; }
+    .map-btn  { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #60a5fa; text-decoration: none; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(96,165,250,0.25); transition: all 0.2s ease; }
+    .map-btn:hover { background: rgba(96,165,250,0.1); border-color: rgba(96,165,250,0.5); }
+    .empty-state { padding: 48px 20px; text-align: center; color: #475569; }
+    .empty-icon { font-size: 40px; margin-bottom: 10px; }
+    #loadingMsg { text-align: center; padding: 32px; color: #64748b; font-size: 0.9em; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="page-header">
+    <a href="index.html" class="back-btn">← กลับ</a>
+    <h2>📊 รายงานการเข้าเรียน</h2>
+    <p class="page-subtitle">ข้อมูลการเช็คชื่อนักเรียน</p>
+  </div>
+
+  <!-- Filter -->
+  <div class="filter-bar">
+    <select id="filterCourse">
+      <option value="">-- ทุกวิชา --</option>
+    </select>
+    <input type="date" id="filterDate">
+    <button class="btn-search" onclick="loadAttendance()">🔍 ค้นหา</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">รวมเช็คชื่อ</div></div>
+    <div class="stat-card"><div class="stat-num" id="statStudents">0</div><div class="stat-label">นักเรียน (คนไม่ซ้ำ)</div></div>
+    <div class="stat-card"><div class="stat-num" id="statCourses">0</div><div class="stat-label">วิชา</div></div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-header">
+      <span class="table-title">รายการเข้าเรียน</span>
+      <span class="badge-count" id="rowCount">0 รายการ</span>
+    </div>
+    <div id="loadingMsg">⏳ กรุณากด "ค้นหา" เพื่อโหลดข้อมูล</div>
+    <div class="table-wrap" id="tableWrap" style="display:none;">
+      <table>
+        <thead>
+          <tr>
+            <th>รหัสนักศึกษา</th>
+            <th>ชื่อ-นามสกุล</th>
+            <th>วิชา</th>
+            <th>วันที่</th>
+            <th>เวลา</th>
+            <th>แผนที่</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div class="empty-state" id="emptyState" style="display:none;">
+        <div class="empty-icon">📭</div>
+        <div>ไม่พบข้อมูลที่ตรงกับเงื่อนไข</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+
+  // ── GAS fetch helpers ──────────────────────────────────────────
+  // GAS redirect JSON ผ่าน script.googleusercontent.com
+  // ต้องใช้ redirect:'follow' สำหรับ GET
+  // ต้องใช้ Content-Type:'text/plain' สำหรับ POST (ข้าม CORS preflight)
+  async function gasGet(url) {
+    const res = await fetch(url, { redirect: 'follow' });
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch(e) { throw new Error('GAS ตอบกลับไม่ใช่ JSON: ' + text.substring(0,150)); }
+  }
+  async function gasPost(url, body) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(body),
+      redirect: 'follow'
+    });
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch(e) { throw new Error('GAS ตอบกลับไม่ใช่ JSON: ' + text.substring(0,150)); }
+  }
+  // ───────────────────────────────────────────────────────────────
+  const API_URL = localStorage.getItem('gasApiUrl') || (typeof GAS_API_URL !== 'undefined' ? GAS_API_URL : '');
+
+  // Set today's date as default
+  // ใช้ local date ป้องกันวันคลาด (UTC vs +7)
+  (function(){
+    const n=new Date(), y=n.getFullYear(),
+      m=String(n.getMonth()+1).padStart(2,'0'),
+      d=String(n.getDate()).padStart(2,'0');
+    document.getElementById('filterDate').value = y+'-'+m+'-'+d;
+  })();
+
+  window.addEventListener('load', async () => {
+    if (!API_URL) {
+      document.getElementById('loadingMsg').innerHTML = '<span style="color:#f87171">❌ ยังไม่ได้ตั้งค่า API — <a href="config.html" style="color:#fbbf24">ไปตั้งค่า</a></span>';
+      return;
+    }
+    await loadCourses();
+    await loadAttendance();
+  });
+
+  async function loadCourses() {
+    try {
+      const courses = await gasGet(API_URL + '?action=getCourses');
+      const sel = document.getElementById('filterCourse');
+      courses.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = opt.textContent = c;
+        sel.appendChild(opt);
+      });
+    } catch(e) {}
+  }
+
+  async function loadAttendance() {
+    const course = document.getElementById('filterCourse').value;
+    const rawDate = document.getElementById('filterDate').value;
+
+    // Convert yyyy-mm-dd -> dd/MM/yyyy for GAS comparison
+    let dateParam = '';
+    if (rawDate) {
+      const [y, m, d] = rawDate.split('-');
+      dateParam = d + '/' + m + '/' + y;
+    }
+
+    document.getElementById('loadingMsg').style.display = 'block';
+    document.getElementById('tableWrap').style.display  = 'none';
+    document.getElementById('loadingMsg').innerHTML = '⏳ กำลังโหลดข้อมูล...';
+
+    try {
+      let url = API_URL + '?action=getAttendance';
+      if (course)    url += '&course=' + encodeURIComponent(course);
+      if (dateParam) url += '&date='   + encodeURIComponent(dateParam);
+
+      const rows = await gasGet(url);
+
+      document.getElementById('loadingMsg').style.display = 'none';
+      document.getElementById('tableWrap').style.display  = 'block';
+
+      // Stats
+      const uniqueStudents = new Set(rows.map(r => r.studentId || r.name)).size;
+      const uniqueCourses  = new Set(rows.map(r => r.course)).size;
+      document.getElementById('statTotal').innerText    = rows.length;
+      document.getElementById('statStudents').innerText = uniqueStudents;
+      document.getElementById('statCourses').innerText  = uniqueCourses;
+      document.getElementById('rowCount').innerText     = rows.length + ' รายการ';
+
+      const tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+
+      if (rows.length === 0) {
+        document.getElementById('emptyState').style.display = 'block';
+        return;
+      }
+      document.getElementById('emptyState').style.display = 'none';
+
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          '<td class="td-id">'     + (r.studentId || '-') + '</td>' +
+          '<td class="td-name">'   + r.name + '</td>' +
+          '<td class="td-course">' + (r.course || '-') + '</td>' +
+          '<td class="td-id">'     + (r.date   || '-') + '</td>' +
+          '<td class="td-time">'   + (r.time   || '-') + '</td>' +
+          '<td class="td-map">'    + (r.mapLink ? '<a class="map-btn" href="' + r.mapLink + '" target="_blank">📍 แผนที่</a>' : '-') + '</td>';
+        tbody.appendChild(tr);
+      });
+    } catch(e) {
+      document.getElementById('loadingMsg').innerHTML = '<span style="color:#f87171">❌ โหลดข้อมูลไม่ได้: ' + e.message + '</span>';
+    }
+  }
+</script>
+</body>
+</html>
