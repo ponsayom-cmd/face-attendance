@@ -1,188 +1,117 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบเช็คชื่อใบหน้า v8.5</title>
-    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        :root { --p: #6366f1; --bg: #f8fafc; }
-        body { font-family: 'Sarabun', sans-serif; background: var(--bg); margin: 0; display: flex; flex-direction: column; align-items: center; }
-        .nav { width: 100%; background: white; padding: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; justify-content: center; gap: 15px; position: sticky; top: 0; z-index: 100; }
-        .nav-btn { text-decoration: none; color: #666; font-size: 14px; padding: 8px 15px; border-radius: 8px; background: #f1f5f9; }
-        .container { width: 100%; max-width: 600px; padding: 20px; box-sizing: border-box; }
-        .video-box { width: 100%; aspect-ratio: 4/3; background: #000; border-radius: 20px; overflow: hidden; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        video, canvas { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); position: absolute; }
-        .ui-card { background: white; padding: 20px; border-radius: 20px; margin-top: -40px; position: relative; z-index: 10; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        select { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 15px; font-family: 'Sarabun'; }
-        .log-box { margin-top: 20px; max-height: 150px; overflow-y: auto; font-size: 13px; color: #64748b; }
-        .log-item { padding: 8px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; }
-        .status-badge { display: inline-block; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; background: #e0e7ff; color: #4338ca; margin-bottom: 10px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ระบบเช็คชื่อนักเรียน</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="js/api-config.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Sarabun', sans-serif;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d1b2a 100%);
+      color: #e2e8f0;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 40px 20px 60px; position: relative; overflow-x: hidden;
+    }
+    body::before, body::after {
+      content: ''; position: fixed; border-radius: 50%;
+      filter: blur(80px); opacity: 0.15; pointer-events: none; z-index: 0;
+    }
+    body::before { width: 400px; height: 400px; background: #6366f1; top: -100px; left: -100px; }
+    body::after  { width: 350px; height: 350px; background: #10b981; bottom: -80px; right: -80px; }
+    .header { text-align: center; margin-bottom: 40px; position: relative; z-index: 1; animation: fadeInDown 0.6s ease; }
+    .logo-icon { font-size: 52px; display: block; margin-bottom: 12px; filter: drop-shadow(0 0 20px rgba(99,102,241,0.6)); }
+    h1 { font-size: 1.7em; font-weight: 700; background: linear-gradient(135deg, #a5b4fc, #e2e8f0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 6px; }
+    .subtitle { font-size: 0.85em; color: #64748b; letter-spacing: 0.03em; }
+    .api-warning { display: none; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4); color: #fcd34d; border-radius: 12px; padding: 12px 18px; width: 100%; max-width: 360px; margin-bottom: 20px; font-size: 0.88em; position: relative; z-index: 1; animation: fadeIn 0.5s ease; }
+    .api-warning a { color: #fbbf24; font-weight: 600; text-decoration: none; }
+    .menu-cards { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 16px; position: relative; z-index: 1; }
+    .btn-menu { display: flex; align-items: center; gap: 16px; padding: 20px 22px; text-decoration: none; border-radius: 18px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); color: #e2e8f0; transition: all 0.3s ease; animation: fadeInUp 0.5s ease both; }
+    .btn-menu:nth-child(1) { animation-delay: 0.1s; }
+    .btn-menu:nth-child(2) { animation-delay: 0.2s; }
+    .btn-menu:nth-child(3) { animation-delay: 0.3s; }
+    .btn-menu:nth-child(4) { animation-delay: 0.4s; }
+    .btn-menu:nth-child(5) { animation-delay: 0.5s; }
+    .btn-menu:hover { transform: translateY(-4px); background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); }
+    .btn-register:hover { box-shadow: 0 8px 30px rgba(99,102,241,0.35); border-color: rgba(99,102,241,0.5); }
+    .btn-scan:hover     { box-shadow: 0 8px 30px rgba(16,185,129,0.35); border-color: rgba(16,185,129,0.5); }
+    .btn-dashboard:hover{ box-shadow: 0 8px 30px rgba(245,158,11,0.35); border-color: rgba(245,158,11,0.5); }
+    .btn-config:hover   { box-shadow: 0 8px 30px rgba(100,116,139,0.25); border-color: rgba(148,163,184,0.4); }
+    .btn-report:hover   { box-shadow: 0 8px 30px rgba(139,92,246,0.35); border-color: rgba(139,92,246,0.5); }
+    .card-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+    .btn-register .card-icon  { background: linear-gradient(135deg, #6366f1, #4f46e5); box-shadow: 0 4px 15px rgba(99,102,241,0.4); }
+    .btn-scan     .card-icon  { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 15px rgba(16,185,129,0.4); }
+    .btn-dashboard .card-icon { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 4px 15px rgba(245,158,11,0.4); }
+    .btn-config   .card-icon  { background: linear-gradient(135deg, #475569, #334155); box-shadow: 0 4px 15px rgba(71,85,105,0.4); }
+    .btn-report   .card-icon  { background: linear-gradient(135deg, #8b5cf6, #7c3aed); box-shadow: 0 4px 15px rgba(139,92,246,0.4); }
+    .card-text { flex: 1; text-align: left; }
+    .card-title { font-size: 1.05em; font-weight: 600; color: #f1f5f9; margin-bottom: 2px; }
+    .card-desc  { font-size: 0.8em; color: #64748b; }
+    .card-arrow { font-size: 18px; color: #475569; transition: transform 0.3s ease, color 0.3s ease; }
+    .btn-menu:hover .card-arrow { transform: translateX(4px); color: #94a3b8; }
+    @keyframes fadeIn     { from { opacity: 0; }                        to { opacity: 1; } }
+    @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeInUp   { from { opacity: 0; transform: translateY(20px);  } to { opacity: 1; transform: translateY(0); } }
+  </style>
 </head>
 <body>
-
-<div class="nav">
-    <a href="register.html" class="nav-btn">➕ ลงทะเบียน</a>
-    <a href="manage_master.html" class="nav-btn">⚙️ จัดการข้อมูล</a>
-</div>
-
-<div class="container">
-    <div class="video-box">
-        <video id="video" autoplay muted playsinline></video>
-        <canvas id="overlay"></canvas>
-    </div>
-
-    <div class="ui-card">
-        <div id="status-text" class="status-badge">กำลังเตรียมระบบ AI...</div>
-        
-        <label style="display:block; margin-bottom:5px; font-size:14px; font-weight:bold;">เลือกรายวิชา:</label>
-        <select id="subject-select">
-            <option value="">-- กรุณาเลือกวิชา --</option>
-        </select>
-
-        <div id="result-name" style="font-size:20px; font-weight:bold; color:#1e293b; text-align:center; margin: 10px 0;">
-            สแกนใบหน้าเพื่อเช็คชื่อ
-        </div>
-
-        <div class="log-box" id="log-content">
-            <div style="text-align:center; padding:10px;">ประวัติการสแกนล่าสุด</div>
-        </div>
-    </div>
-</div>
-
-<script>
-    const API = localStorage.getItem('gas_v5');
-    const video = document.getElementById('video');
-    const overlay = document.getElementById('overlay');
-    const subjectSelect = document.getElementById('subject-select');
-    const resultName = document.getElementById('result-name');
-    const statusText = document.getElementById('status-text');
-
-    let knownFaces = [];
-    let lastScanName = "";
-    let lastScanTime = 0;
-    const COOLDOWN = 10000; // ป้องกันการสแกนซ้ำภายใน 10 วินาที
-
-    async function setup() {
-        try {
-            const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model';
-            await Promise.all([
-                faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-                faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-            ]);
-
-            statusText.innerText = "ดึงข้อมูลจาก Server...";
-            
-            // ดึงรายชื่อนักศึกษาและวิชาพร้อมกัน
-            const [facesRes, subsRes] = await Promise.all([
-                fetch(`${API}?action=getKnownFaces`),
-                fetch(`${API}?action=getSubjects`)
-            ]);
-            
-            knownFaces = await facesRes.json();
-            const subjects = await subsRes.json();
-
-            // เติมวิชาใน Dropdown
-            subjects.forEach(sub => {
-                const opt = document.createElement('option');
-                opt.value = sub;
-                opt.innerText = sub;
-                subjectSelect.appendChild(opt);
-            });
-
-            const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
-            video.srcObject = stream;
-            
-            statusText.innerText = "ระบบพร้อมทำงาน";
-            startRecognition();
-        } catch (e) {
-            statusText.innerText = "Error: เชื่อมต่อ API ไม่ได้";
-            console.error(e);
-        }
+  <div class="header">
+    <span class="logo-icon">🎓</span>
+    <h1>ระบบเช็คชื่อนักเรียน</h1>
+    <p class="subtitle">Face Recognition Attendance System</p>
+  </div>
+  <div id="apiWarning" class="api-warning">
+    ⚠️ ยังไม่ได้ตั้งค่า API — <a href="config.html">ไปตั้งค่าก่อน</a>
+  </div>
+  <div class="menu-cards">
+    <a href="register.html" class="btn-menu btn-register">
+      <div class="card-icon">👤</div>
+      <div class="card-text">
+        <div class="card-title">ลงทะเบียนนักเรียน</div>
+        <div class="card-desc">บันทึกข้อมูลและใบหน้า</div>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+    <a href="scan.html" class="btn-menu btn-scan">
+      <div class="card-icon">📷</div>
+      <div class="card-text">
+        <div class="card-title">เช็คชื่อเข้าเรียน</div>
+        <div class="card-desc">สแกนใบหน้า + GPS</div>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+    <a href="dashboard.html" class="btn-menu btn-dashboard">
+      <div class="card-icon">📊</div>
+      <div class="card-text">
+        <div class="card-title">รายงานการเข้าเรียน</div>
+        <div class="card-desc">Dashboard สำหรับอาจารย์</div>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+    <a href="report.html" class="btn-menu btn-report">
+      <div class="card-icon">📈</div>
+      <div class="card-text">
+        <div class="card-title">รายงานกราฟ</div>
+        <div class="card-desc">วิเคราะห์ข้อมูลการเข้าเรียน</div>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+    <a href="config.html" class="btn-menu btn-config">
+      <div class="card-icon">⚙️</div>
+      <div class="card-text">
+        <div class="card-title">ตั้งค่าระบบ</div>
+        <div class="card-desc">จัดการ GPS, API และวิชาเรียน</div>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+  </div>
+  <script>
+    if (!localStorage.getItem('gasApiUrl') && typeof GAS_API_URL === 'undefined') {
+      document.getElementById('apiWarning').style.display = 'block';
     }
-
-    async function startRecognition() {
-        if (knownFaces.length === 0) {
-            statusText.innerText = "ยังไม่มีข้อมูลนักศึกษา";
-            return;
-        }
-
-        const faceMatchers = new faceapi.FaceMatcher(knownFaces.map(f => {
-            return new faceapi.LabeledFaceDescriptors(f.name, [new Float32Array(f.descriptor)]);
-        }), 0.6);
-
-        setInterval(async () => {
-            if (video.paused || video.ended) return;
-
-            const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
-                .withFaceLandmarks().withFaceDescriptors();
-
-            const displaySize = { width: video.videoWidth, height: video.videoHeight };
-            faceapi.matchDimensions(overlay, displaySize);
-
-            const resizedDetections = faceapi.resizeResults(detections, displaySize);
-            overlay.getContext('2d').clearRect(0, 0, overlay.width, overlay.height);
-
-            resizedDetections.forEach(async (detection) => {
-                const bestMatch = faceMatchers.findBestMatch(detection.descriptor);
-                const name = bestMatch.label;
-
-                if (name !== 'unknown') {
-                    handleMatch(name);
-                    // วาดกรอบสีเขียวรอบหน้า
-                    new faceapi.draw.DrawBox(detection.detection.box, { label: name, boxColor: '#10b981' }).draw(overlay);
-                }
-            });
-        }, 1000);
-    }
-
-    async function handleMatch(name) {
-        const now = Date.now();
-        const selectedSubject = subjectSelect.value;
-
-        if (!selectedSubject) {
-            resultName.innerText = "⚠️ กรุณาเลือกวิชาก่อน";
-            resultName.style.color = "orange";
-            return;
-        }
-
-        // เช็ค Cooldown ป้องกันการบันทึกซ้ำ
-        if (name === lastScanName && (now - lastScanTime) < COOLDOWN) return;
-
-        lastScanName = name;
-        lastScanTime = now;
-        resultName.innerText = "✅ " + name;
-        resultName.style.color = "#10b981";
-
-        addLog(name, selectedSubject);
-
-        // ส่งข้อมูลไปบันทึกลง Google Sheets
-        try {
-            const std = knownFaces.find(f => f.name === name);
-            fetch(API, {
-                method: 'POST',
-                body: JSON.stringify({
-                    action: 'logAttendance',
-                    id: std ? std.id : '',
-                    name: name,
-                    subject: selectedSubject
-                })
-            });
-        } catch (e) { console.error("Logging error"); }
-    }
-
-    function addLog(name, sub) {
-        const logBox = document.getElementById('log-content');
-        const div = document.createElement('div');
-        div.className = 'log-item';
-        div.innerHTML = `<span>${name}</span> <span style="font-size:11px;">${sub} - ${new Date().toLocaleTimeString()}</span>`;
-        logBox.prepend(div);
-    }
-
-    window.onload = setup;
-</script>
+  </script>
 </body>
 </html>
