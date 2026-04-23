@@ -2,69 +2,753 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>สรุปรายงานการเข้าเรียน</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>รายงานการเข้าเรียน</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    body { font-family: 'Sarabun', sans-serif; background: #f1f5f9; padding: 20px; }
-    .container { max-width: 600px; margin: 0 auto; }
-    .card { background: white; padding: 20px; border-radius: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; }
-    th { color: #64748b; }
-    .chart-container { height: 250px; }
-    .back { display: block; text-align: center; color: #666; text-decoration: none; margin-bottom: 20px; }
+    :root {
+      --bg: #07090f;
+      --surface: #0d1117;
+      --surface2: #161b22;
+      --border: rgba(255,255,255,0.07);
+      --border-glow: rgba(99,102,241,0.25);
+      --text: #e6edf3;
+      --muted: #7d8590;
+      --indigo: #6366f1;
+      --cyan: #22d3ee;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --violet: #8b5cf6;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── GRID NOISE BACKGROUND ─── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ─── HERO GLOW ─── */
+    .glow-orb {
+      position: fixed; border-radius: 50%; filter: blur(100px);
+      opacity: 0.12; pointer-events: none; z-index: 0;
+    }
+    .glow-orb.a { width: 600px; height: 600px; background: #6366f1; top: -200px; left: -100px; }
+    .glow-orb.b { width: 400px; height: 400px; background: #22d3ee; bottom: -100px; right: -100px; }
+
+    /* ─── LAYOUT ─── */
+    .layout { display: flex; min-height: 100vh; position: relative; z-index: 1; }
+
+    /* ─── SIDEBAR ─── */
+    .sidebar {
+      width: 220px; flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 24px 14px;
+      display: flex; flex-direction: column; gap: 4px;
+      position: sticky; top: 0; height: 100vh; overflow: hidden;
+    }
+    .sidebar-logo {
+      display: flex; align-items: center; gap: 10px;
+      padding: 0 10px 20px; margin-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-logo span { font-size: 22px; }
+    .sidebar-logo strong { font-size: 0.9em; color: var(--text); font-weight: 700; line-height: 1.3; }
+    .sidebar-logo small { display: block; font-size: 0.68em; color: var(--muted); }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 10px;
+      font-size: 0.88em; color: var(--muted); cursor: pointer;
+      transition: all 0.2s ease; text-decoration: none;
+      border: 1px solid transparent;
+    }
+    .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+    .nav-item.active {
+      color: #a5b4fc; background: rgba(99,102,241,0.12);
+      border-color: rgba(99,102,241,0.2);
+    }
+    .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+    .nav-spacer { flex: 1; }
+    .nav-back { color: var(--rose); font-size: 0.85em; }
+    .nav-back:hover { background: rgba(244,63,94,0.08); color: #fda4af; }
+
+    /* ─── MAIN CONTENT ─── */
+    .main { flex: 1; padding: 32px 28px; overflow-y: auto; }
+
+    /* ─── TOPBAR ─── */
+    .topbar {
+      display: flex; align-items: flex-start;
+      justify-content: space-between; margin-bottom: 28px;
+      gap: 16px; flex-wrap: wrap;
+    }
+    .topbar-left h1 {
+      font-size: 1.6em; font-weight: 700;
+      background: linear-gradient(135deg, #a5b4fc 0%, #e2e8f0 60%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text; margin-bottom: 4px;
+    }
+    .topbar-left p { font-size: 0.83em; color: var(--muted); }
+    .filter-row {
+      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+    }
+    .filter-select, .filter-date {
+      padding: 9px 14px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-family: 'Sarabun', sans-serif;
+      font-size: 0.85em; outline: none; cursor: pointer;
+      transition: all 0.2s;
+    }
+    .filter-select:focus, .filter-date:focus { border-color: var(--border-glow); }
+    .filter-select option { background: #1c2128; }
+    .filter-date::-webkit-calendar-picker-indicator { filter: invert(0.5); }
+    .btn-load {
+      padding: 9px 20px; background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white; border: none; border-radius: 10px; font-size: 0.85em;
+      font-weight: 700; font-family: 'Sarabun', sans-serif;
+      cursor: pointer; transition: all 0.25s;
+      box-shadow: 0 2px 12px rgba(99,102,241,0.35);
+    }
+    .btn-load:hover { box-shadow: 0 4px 20px rgba(99,102,241,0.55); transform: translateY(-1px); }
+
+    /* ─── KPI CARDS ─── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px; margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px; padding: 18px 20px;
+      position: relative; overflow: hidden;
+      transition: border-color 0.3s, transform 0.2s;
+      animation: fadeUp 0.5s ease both;
+    }
+    .kpi-card:nth-child(1) { animation-delay: 0.05s; }
+    .kpi-card:nth-child(2) { animation-delay: 0.10s; }
+    .kpi-card:nth-child(3) { animation-delay: 0.15s; }
+    .kpi-card:nth-child(4) { animation-delay: 0.20s; }
+    .kpi-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.14); }
+    .kpi-card::before {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 2px;
+      border-radius: 14px 14px 0 0;
+    }
+    .kpi-card.indigo::before { background: var(--indigo); }
+    .kpi-card.cyan::before   { background: var(--cyan); }
+    .kpi-card.emerald::before{ background: var(--emerald); }
+    .kpi-card.amber::before  { background: var(--amber); }
+
+    .kpi-label { font-size: 0.75em; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+    .kpi-value {
+      font-family: 'Space Mono', monospace;
+      font-size: 2em; font-weight: 700; line-height: 1;
+      margin-bottom: 6px;
+    }
+    .kpi-card.indigo .kpi-value { color: #a5b4fc; }
+    .kpi-card.cyan   .kpi-value { color: #67e8f9; }
+    .kpi-card.emerald .kpi-value { color: #6ee7b7; }
+    .kpi-card.amber  .kpi-value { color: #fcd34d; }
+    .kpi-sub { font-size: 0.75em; color: var(--muted); }
+
+    /* ─── CHART GRID ─── */
+    .chart-row { display: grid; grid-template-columns: 3fr 2fr; gap: 14px; margin-bottom: 24px; }
+    .chart-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px 22px;
+      animation: fadeUp 0.5s ease both;
+    }
+    .chart-card:nth-child(1) { animation-delay: 0.25s; }
+    .chart-card:nth-child(2) { animation-delay: 0.35s; }
+
+    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .chart-title { font-size: 0.9em; font-weight: 700; color: var(--text); }
+    .chart-badge { font-size: 0.72em; color: #a5b4fc; background: rgba(99,102,241,0.15); padding: 3px 10px; border-radius: 20px; border: 1px solid rgba(99,102,241,0.25); }
+    .chart-canvas-wrap { position: relative; }
+
+    /* ─── TABLE ─── */
+    .table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
+      animation: fadeUp 0.5s ease 0.45s both;
+      margin-bottom: 24px;
+    }
+    .table-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+    }
+    .search-box {
+      padding: 7px 14px; background: var(--surface2);
+      border: 1px solid var(--border); border-radius: 8px;
+      color: var(--text); font-family: 'Sarabun', sans-serif; font-size: 0.83em;
+      outline: none; width: 200px; transition: border-color 0.2s;
+    }
+    .search-box:focus { border-color: var(--border-glow); }
+    .search-box::placeholder { color: var(--muted); }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.86em; }
+    thead th {
+      padding: 10px 16px; text-align: left;
+      color: var(--muted); font-size: 0.78em; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      background: var(--surface2); border-bottom: 1px solid var(--border);
+    }
+    tbody tr { border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.15s; }
+    tbody tr:hover { background: rgba(255,255,255,0.03); }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td { padding: 11px 16px; vertical-align: middle; color: #cbd5e1; }
+    .td-name { font-weight: 600; color: var(--text); }
+    .td-id { font-family: 'Space Mono', monospace; font-size: 0.8em; color: var(--muted); }
+    .td-course { color: #a5b4fc; }
+    .td-time { color: var(--emerald); font-family: 'Space Mono', monospace; font-size: 0.82em; }
+    .td-date { color: var(--muted); font-size: 0.85em; }
+    .tag-map {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.77em; color: #60a5fa; text-decoration: none;
+      padding: 3px 10px; border-radius: 6px;
+      border: 1px solid rgba(96,165,250,0.2);
+      transition: all 0.2s;
+    }
+    .tag-map:hover { background: rgba(96,165,250,0.1); border-color: rgba(96,165,250,0.45); }
+
+    /* ─── EMPTY / LOADING ─── */
+    .state-box {
+      padding: 48px; text-align: center; color: var(--muted);
+    }
+    .state-icon { font-size: 36px; margin-bottom: 10px; }
+    .state-text { font-size: 0.88em; }
+
+    /* ─── HEATMAP ─── */
+    .heatmap-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .hm-cell {
+      aspect-ratio: 1; border-radius: 4px;
+      background: rgba(99,102,241,0.06);
+      border: 1px solid rgba(99,102,241,0.1);
+      transition: all 0.2s; cursor: default;
+      position: relative;
+    }
+    .hm-cell:hover::after {
+      content: attr(data-tip);
+      position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
+      background: #1c2128; border: 1px solid var(--border);
+      color: var(--text); font-size: 11px; padding: 4px 8px;
+      border-radius: 6px; white-space: nowrap; z-index: 99;
+      pointer-events: none;
+    }
+    .hm-day-label { font-size: 10px; color: var(--muted); text-align: center; padding-bottom: 4px; }
+
+    /* ─── PAGINATION ─── */
+    .pagination { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-top: 1px solid var(--border); }
+    .page-info { font-size: 0.8em; color: var(--muted); }
+    .page-btns { display: flex; gap: 6px; }
+    .page-btn {
+      padding: 6px 14px; border-radius: 8px; font-size: 0.8em; cursor: pointer;
+      background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
+      transition: all 0.2s; font-family: 'Sarabun', sans-serif;
+    }
+    .page-btn:hover, .page-btn.active { color: var(--text); border-color: rgba(99,102,241,0.4); background: rgba(99,102,241,0.1); }
+    .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* ─── ANIMATIONS ─── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes shimmer {
+      0%   { background-position: -200% center; }
+      100% { background-position: 200% center; }
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 900px) {
+      .sidebar { width: 56px; padding: 16px 8px; }
+      .sidebar-logo strong, .sidebar-logo small, .nav-item span { display: none; }
+      .sidebar-logo { padding: 0 0 16px; justify-content: center; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .chart-row, .chart-row-2 { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .main { padding: 20px 14px; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .filter-row { flex-direction: column; align-items: stretch; }
+      .btn-load { text-align: center; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <a href="index.html" class="back">← กลับหน้าหลัก</a>
-    <h2>รายงานสรุปผล 📊</h2>
-    
-    <div class="card">
-      <div class="chart-container"><canvas id="attChart"></canvas></div>
+<div class="glow-orb a"></div>
+<div class="glow-orb b"></div>
+
+<div class="layout">
+
+  <!-- ─── SIDEBAR ─── -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">
+      <span>🎓</span>
+      <div><strong>FaceScan</strong><small>Attendance</small></div>
+    </div>
+    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span>หน้าหลัก</span></a>
+    <a href="report.html" class="nav-item active"><span class="nav-icon">📊</span><span>รายงาน</span></a>
+    <a href="dashboard.html" class="nav-item"><span class="nav-icon">📋</span><span>ตารางข้อมูล</span></a>
+    <a href="admin.html" class="nav-item"><span class="nav-icon">⚙️</span><span>Admin</span></a>
+    <div class="nav-spacer"></div>
+    <a href="scan.html" class="nav-item" style="color:var(--emerald);border-color:rgba(16,185,129,0.2);background:rgba(16,185,129,0.07);">
+      <span class="nav-icon">📷</span><span>เช็คชื่อ</span>
+    </a>
+    <a href="config.html" class="nav-item nav-back"><span class="nav-icon">🔧</span><span>ตั้งค่า</span></a>
+  </nav>
+
+  <!-- ─── MAIN ─── -->
+  <main class="main">
+
+    <!-- TOP BAR -->
+    <div class="topbar">
+      <div class="topbar-left">
+        <h1>📊 รายงานการเข้าเรียน</h1>
+        <p id="lastUpdate">โหลดข้อมูลจาก Google Sheets · Real-time</p>
+      </div>
+      <div class="filter-row">
+        <select class="filter-select" id="filterCourse"><option value="">ทุกวิชา</option></select>
+        <input type="date" class="filter-date" id="filterDate">
+        <button class="btn-load" onclick="loadAll()">🔄 โหลดข้อมูล</button>
+      </div>
     </div>
 
-    <div class="card">
-      <h3>ประวัติการเข้าเรียนล่าสุด</h3>
-      <table id="log-table">
-        <thead><tr><th>ชื่อ</th><th>วิชา</th><th>เวลา</th></tr></thead>
-        <tbody></tbody>
-      </table>
+    <!-- KPI CARDS -->
+    <div class="kpi-grid">
+      <div class="kpi-card indigo">
+        <div class="kpi-label">เช็คชื่อรวม</div>
+        <div class="kpi-value" id="kpi-total">—</div>
+        <div class="kpi-sub">ครั้ง</div>
+      </div>
+      <div class="kpi-card cyan">
+        <div class="kpi-label">นักเรียน (ไม่ซ้ำ)</div>
+        <div class="kpi-value" id="kpi-students">—</div>
+        <div class="kpi-sub">คน</div>
+      </div>
+      <div class="kpi-card emerald">
+        <div class="kpi-label">วิชาทั้งหมด</div>
+        <div class="kpi-value" id="kpi-courses">—</div>
+        <div class="kpi-sub">วิชา</div>
+      </div>
+      <div class="kpi-card amber">
+        <div class="kpi-label">เฉลี่ย / วัน</div>
+        <div class="kpi-value" id="kpi-avg">—</div>
+        <div class="kpi-sub">ครั้ง</div>
+      </div>
     </div>
-  </div>
+
+    <!-- CHARTS ROW 1 -->
+    <div class="chart-row">
+      <!-- Bar chart: by course -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <span class="chart-title">การเข้าเรียนรายวิชา</span>
+          <span class="chart-badge" id="badge-course">—</span>
+        </div>
+        <div class="chart-canvas-wrap">
+          <canvas id="chartCourse" height="200"></canvas>
+        </div>
+      </div>
+      <!-- Donut: distribution -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <span class="chart-title">สัดส่วนแต่ละวิชา</span>
+        </div>
+        <div class="chart-canvas-wrap" style="max-width:260px; margin:auto;">
+          <canvas id="chartDonut" height="200"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 2 -->
+    <div class="chart-row-2">
+      <!-- Line: trend over time -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <span class="chart-title">แนวโน้มรายวัน</span>
+          <span class="chart-badge" id="badge-trend">7 วันล่าสุด</span>
+        </div>
+        <canvas id="chartLine" height="180"></canvas>
+      </div>
+      <!-- Bar: by hour -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <span class="chart-title">การเช็คชื่อตามช่วงเวลา</span>
+        </div>
+        <canvas id="chartHour" height="180"></canvas>
+      </div>
+    </div>
+
+    <!-- ATTENDANCE TABLE -->
+    <div class="table-card">
+      <div class="table-head">
+        <span class="chart-title">รายการเช็คชื่อ</span>
+        <input class="search-box" id="searchBox" placeholder="🔍 ค้นหาชื่อ..." oninput="renderTable()">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>รหัสนักศึกษา</th>
+              <th>ชื่อ-นามสกุล</th>
+              <th>วิชา</th>
+              <th>วันที่</th>
+              <th>เวลา</th>
+              <th>ตำแหน่ง</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div class="state-box" id="stateBox">
+          <div class="state-icon">📡</div>
+          <div class="state-text">กด "โหลดข้อมูล" เพื่อดึงข้อมูลจาก Google Sheets</div>
+        </div>
+      </div>
+      <div class="pagination" id="paginationBar" style="display:none;">
+        <span class="page-info" id="pageInfo"></span>
+        <div class="page-btns">
+          <button class="page-btn" id="btnPrev" onclick="changePage(-1)">← ก่อน</button>
+          <button class="page-btn" id="btnNext" onclick="changePage(1)">ถัด →</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
 
 <script>
-  const API = localStorage.getItem('gas_v5');
-  
-  window.onload = async () => {
-    const res = await fetch(`${API}?action=getAttendance&t=${Date.now()}`);
-    const data = await res.json();
-    
-    const tableBody = document.querySelector('#log-table tbody');
-    const counts = {};
-    
-    data.forEach(r => {
-      counts[r.subject] = (counts[r.subject] || 0) + 1;
-      tableBody.innerHTML += `<tr><td>${r.name}</td><td>${r.subject}</td><td>${r.time}</td></tr>`;
-    });
+  /* ──────── CONFIG ──────── */
+  const API_URL = localStorage.getItem('gasApiUrl') || (typeof GAS_API_URL !== 'undefined' ? GAS_API_URL : '');
+  const COLORS  = ['#6366f1','#22d3ee','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9','#84cc16'];
 
-    renderChart(counts);
-  };
+  /* ──────── STATE ──────── */
+  let allRows  = [];
+  let filtered = [];
+  let page     = 0;
+  const PER_PAGE = 15;
 
-  function renderChart(counts) {
-    new Chart(document.getElementById('attChart'), {
-      type: 'doughnut',
+  let chartCourse, chartDonut, chartLine, chartHour;
+
+  /* ──────── GAS HELPERS ──────── */
+  async function gasGet(url) {
+    const res  = await fetch(url, { redirect: 'follow' });
+    const text = await res.text();
+    try { return JSON.parse(text); }
+    catch(e) { throw new Error('GAS response: ' + text.substring(0, 120)); }
+  }
+
+  /* ──────── INIT ──────── */
+  (function init() {
+    const n = new Date();
+    const today = n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
+    document.getElementById('filterDate').value = today;
+
+    if (!API_URL) {
+      document.getElementById('stateBox').innerHTML =
+        '<div class="state-icon">⚠️</div><div class="state-text">ยังไม่ได้ตั้งค่า API — <a href="config.html" style="color:#fbbf24;">ไปตั้งค่า</a></div>';
+      return;
+    }
+    loadCourseOptions();
+    loadAll();
+  })();
+
+  async function loadCourseOptions() {
+    try {
+      const courses = await gasGet(API_URL + '?action=getCourses');
+      const sel = document.getElementById('filterCourse');
+      courses.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = opt.textContent = c;
+        sel.appendChild(opt);
+      });
+    } catch(e) {}
+  }
+
+  /* ──────── LOAD ALL DATA ──────── */
+  async function loadAll() {
+    if (!API_URL) return;
+    document.getElementById('stateBox').innerHTML =
+      '<div class="state-icon">⏳</div><div class="state-text">กำลังดึงข้อมูล...</div>';
+    document.getElementById('stateBox').style.display = 'block';
+    document.querySelector('.table-wrap table').style.display = 'none';
+    document.getElementById('paginationBar').style.display = 'none';
+
+    try {
+      const course   = document.getElementById('filterCourse').value;
+      const rawDate  = document.getElementById('filterDate').value;
+      let dateParam  = '';
+      if (rawDate) {
+        const [y,m,d] = rawDate.split('-');
+        dateParam = d+'/'+m+'/'+y;
+      }
+
+      let url = API_URL + '?action=getAttendance';
+      if (course)    url += '&course=' + encodeURIComponent(course);
+      if (dateParam) url += '&date='   + encodeURIComponent(dateParam);
+
+      // Also load all-time for charts (no date filter)
+      const [rows, allTimeRows] = await Promise.all([
+        gasGet(url),
+        gasGet(API_URL + '?action=getAttendance' + (course ? '&course='+encodeURIComponent(course) : ''))
+      ]);
+
+      allRows = rows;
+      updateKPI(rows);
+      buildCharts(allTimeRows);
+      filtered = rows;
+      page = 0;
+      renderTable();
+
+      document.getElementById('lastUpdate').textContent =
+        'อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH');
+    } catch(e) {
+      document.getElementById('stateBox').innerHTML =
+        '<div class="state-icon">❌</div><div class="state-text">โหลดไม่ได้: ' + e.message + '</div>';
+    }
+  }
+
+  /* ──────── KPI ──────── */
+  function updateKPI(rows) {
+    const total    = rows.length;
+    const students = new Set(rows.map(r => r.studentId || r.name)).size;
+    const courses  = new Set(rows.map(r => r.course)).size;
+    const days     = new Set(rows.map(r => r.date)).size;
+    const avg      = days > 0 ? (total / days).toFixed(1) : '—';
+
+    animateNum('kpi-total',    total);
+    animateNum('kpi-students', students);
+    animateNum('kpi-courses',  courses);
+    document.getElementById('kpi-avg').textContent = avg;
+  }
+
+  function animateNum(id, target) {
+    const el   = document.getElementById(id);
+    const start= 0, dur = 700, t0 = performance.now();
+    function step(t) {
+      const p = Math.min((t - t0) / dur, 1);
+      el.textContent = Math.round(p * target);
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  /* ──────── CHARTS ──────── */
+  function buildCharts(rows) {
+    buildCourseChart(rows);
+    buildDonutChart(rows);
+    buildLineChart(rows);
+    buildHourChart(rows);
+  }
+
+  function buildCourseChart(rows) {
+    const freq = {};
+    rows.forEach(r => { freq[r.course] = (freq[r.course]||0) + 1; });
+    const labels = Object.keys(freq);
+    const data   = Object.values(freq);
+    document.getElementById('badge-course').textContent = labels.length + ' วิชา';
+
+    if (chartCourse) chartCourse.destroy();
+    chartCourse = new Chart(document.getElementById('chartCourse'), {
+      type: 'bar',
       data: {
-        labels: Object.keys(counts),
+        labels,
         datasets: [{
-          data: Object.values(counts),
-          backgroundColor: ['#6366f1', '#10b981', '#f59e0b', '#ef4444']
+          label: 'จำนวนครั้ง',
+          data,
+          backgroundColor: labels.map((_,i) => COLORS[i % COLORS.length] + 'cc'),
+          borderColor:     labels.map((_,i) => COLORS[i % COLORS.length]),
+          borderWidth: 1, borderRadius: 6, borderSkipped: false
         }]
       },
-      options: { maintainAspectRatio: false }
+      options: {
+        responsive: true, plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7d8590', font: { family: 'Sarabun' } } },
+          y: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#7d8590', font: { family: 'Sarabun' } }, beginAtZero: true }
+        }
+      }
     });
+  }
+
+  function buildDonutChart(rows) {
+    const freq = {};
+    rows.forEach(r => { freq[r.course] = (freq[r.course]||0) + 1; });
+    const labels = Object.keys(freq);
+    const data   = Object.values(freq);
+
+    if (chartDonut) chartDonut.destroy();
+    chartDonut = new Chart(document.getElementById('chartDonut'), {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: labels.map((_,i) => COLORS[i % COLORS.length] + 'dd'),
+          borderColor: '#0d1117', borderWidth: 3, hoverOffset: 8
+        }]
+      },
+      options: {
+        cutout: '65%',
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#7d8590', font: { family: 'Sarabun', size: 11 }, padding: 12, boxWidth: 10 } }
+        }
+      }
+    });
+  }
+
+  function buildLineChart(rows) {
+    // Last 14 days trend
+    const dayCount = {};
+    rows.forEach(r => { if(r.date) dayCount[r.date] = (dayCount[r.date]||0) + 1; });
+    const sortedDays = Object.keys(dayCount).sort((a,b) => {
+      // format d/m/y → parse
+      const parseD = s => { const [d,m,y] = s.split('/'); return new Date(y,m-1,d); };
+      return parseD(a) - parseD(b);
+    }).slice(-14);
+    const labels = sortedDays;
+    const data   = sortedDays.map(d => dayCount[d]);
+
+    document.getElementById('badge-trend').textContent = sortedDays.length + ' วันล่าสุด';
+
+    if (chartLine) chartLine.destroy();
+    chartLine = new Chart(document.getElementById('chartLine'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'เช็คชื่อ',
+          data,
+          borderColor: '#22d3ee',
+          backgroundColor: 'rgba(34,211,238,0.08)',
+          fill: true, tension: 0.4,
+          pointBackgroundColor: '#22d3ee', pointRadius: 4,
+          pointHoverRadius: 7
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7d8590', font: { family: 'Sarabun', size: 10 }, maxRotation: 40 } },
+          y: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#7d8590', font: { family: 'Sarabun' } }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  function buildHourChart(rows) {
+    const hourCount = Array(24).fill(0);
+    rows.forEach(r => {
+      if (r.time) {
+        const h = parseInt(r.time.split(':')[0]);
+        if (!isNaN(h)) hourCount[h]++;
+      }
+    });
+    const labels = Array.from({length:24}, (_,i) => i + ':00').filter((_,i) => hourCount[i] > 0 || (i >= 6 && i <= 20));
+    const visibleHours = Array.from({length:24}, (_,i) => i).filter(i => hourCount[i] > 0 || (i >= 6 && i <= 20));
+
+    if (chartHour) chartHour.destroy();
+    chartHour = new Chart(document.getElementById('chartHour'), {
+      type: 'bar',
+      data: {
+        labels: visibleHours.map(h => h + ':00'),
+        datasets: [{
+          label: 'เช็คชื่อ',
+          data: visibleHours.map(h => hourCount[h]),
+          backgroundColor: visibleHours.map(h => {
+            if (h < 9) return '#8b5cf6cc';
+            if (h < 12) return '#6366f1cc';
+            if (h < 14) return '#22d3eecc';
+            if (h < 17) return '#10b981cc';
+            return '#f59e0bcc';
+          }),
+          borderRadius: 5, borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true, plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7d8590', font: { family: 'Sarabun', size: 10 } } },
+          y: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#7d8590', font: { family: 'Sarabun' } }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  /* ──────── TABLE ──────── */
+  function renderTable() {
+    const q = document.getElementById('searchBox').value.toLowerCase();
+    filtered = allRows.filter(r =>
+      (!q || (r.name||'').toLowerCase().includes(q) || (r.studentId||'').toLowerCase().includes(q) || (r.course||'').toLowerCase().includes(q))
+    );
+
+    const total = filtered.length;
+    const start = page * PER_PAGE;
+    const slice = filtered.slice(start, start + PER_PAGE);
+
+    const tbody = document.getElementById('tableBody');
+
+    if (total === 0) {
+      tbody.innerHTML = '';
+      document.querySelector('.table-wrap table').style.display = 'none';
+      document.getElementById('stateBox').innerHTML =
+        '<div class="state-icon">📭</div><div class="state-text">ไม่พบข้อมูลที่ตรงกับเงื่อนไข</div>';
+      document.getElementById('stateBox').style.display = 'block';
+      document.getElementById('paginationBar').style.display = 'none';
+      return;
+    }
+
+    document.getElementById('stateBox').style.display = 'none';
+    document.querySelector('.table-wrap table').style.display = '';
+
+    tbody.innerHTML = slice.map(r => `
+      <tr>
+        <td class="td-id">${r.studentId || '—'}</td>
+        <td class="td-name">${r.name || '—'}</td>
+        <td class="td-course">${r.course || '—'}</td>
+        <td class="td-date">${r.date || '—'}</td>
+        <td class="td-time">${r.time || '—'}</td>
+        <td>${r.mapLink ? '<a class="tag-map" href="'+r.mapLink+'" target="_blank">📍 แผนที่</a>' : '—'}</td>
+      </tr>
+    `).join('');
+
+    const pages   = Math.ceil(total / PER_PAGE);
+    const pageBar = document.getElementById('paginationBar');
+    pageBar.style.display = 'flex';
+    document.getElementById('pageInfo').textContent =
+      'แสดง ' + (start+1) + '–' + Math.min(start + PER_PAGE, total) + ' จาก ' + total + ' รายการ';
+    document.getElementById('btnPrev').disabled = page === 0;
+    document.getElementById('btnNext').disabled = page >= pages - 1;
+  }
+
+  function changePage(dir) {
+    page = Math.max(0, Math.min(page + dir, Math.ceil(filtered.length / PER_PAGE) - 1));
+    renderTable();
+    document.querySelector('.table-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 </script>
 </body>
