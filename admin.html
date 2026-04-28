@@ -22,6 +22,30 @@
     th { text-align: left; padding: 12px; color: var(--primary); border-bottom: 2px solid #334155; }
     td { padding: 12px; border-bottom: 1px solid #334155; font-size: 0.9rem; }
     .btn-del { color: #f87171; background: none; border: none; cursor: pointer; }
+    /* PIN Lock */
+    #pinScreen { position: fixed; inset: 0; background: #0f172a; z-index: 999; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }
+    .pin-card { background: #1e293b; border: 1px solid #334155; border-radius: 24px; padding: 40px 36px; text-align: center; width: 320px; }
+    .pin-card h2 { font-size: 1.4em; margin-bottom: 6px; color: #a5b4fc; }
+    .pin-card p  { color: #64748b; font-size: 0.85em; margin-bottom: 24px; }
+    .pin-input { width: 100%; padding: 14px; font-size: 24px; letter-spacing: 10px; text-align: center; background: #0f172a; border: 2px solid #334155; border-radius: 12px; color: #f1f5f9; outline: none; margin-bottom: 14px; transition: border-color 0.2s; }
+    .pin-input:focus { border-color: #6366f1; }
+    .pin-btn { width: 100%; padding: 14px; background: linear-gradient(135deg,#6366f1,#4f46e5); color: #fff; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; font-family: 'Sarabun',sans-serif; cursor: pointer; transition: all 0.25s; }
+    .pin-btn:hover { box-shadow: 0 6px 20px rgba(99,102,241,0.4); transform: translateY(-1px); }
+    .pin-err { color: #f87171; font-size: 0.85em; min-height: 20px; margin-top: -8px; }
+    /* Set PIN button in sidebar */
+    .pin-set-btn { margin-top: 10px; padding: 10px 15px; border-radius: 10px; cursor: pointer; color: #94a3b8; font-size: 0.85em; background: none; border: 1px dashed #334155; width: 100%; font-family: 'Sarabun',sans-serif; transition: all 0.2s; }
+    .pin-set-btn:hover { color: #f1f5f9; border-color: #6366f1; }
+    /* PIN modal */
+    .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 998; align-items: center; justify-content: center; }
+    .modal-bg.open { display: flex; }
+    .modal-box { background: #1e293b; border: 1px solid #334155; border-radius: 20px; padding: 32px 28px; width: 300px; text-align: center; }
+    .modal-box h3 { margin-bottom: 16px; color: #a5b4fc; }
+    .modal-box input { width:100%; padding:12px; font-size:20px; letter-spacing:8px; text-align:center; background:#0f172a; border:2px solid #334155; border-radius:10px; color:#f1f5f9; outline:none; margin-bottom:10px; }
+    .modal-box input:focus { border-color:#6366f1; }
+    .modal-row { display:flex; gap:10px; margin-top:6px; }
+    .modal-row button { flex:1; padding:11px; border-radius:10px; border:none; font-family:'Sarabun',sans-serif; font-size:14px; font-weight:600; cursor:pointer; }
+    .btn-ok  { background:#6366f1; color:#fff; }
+    .btn-cancel-sm { background:#334155; color:#94a3b8; }
     @media (max-width: 800px) {
       .sidebar { width: 60px; padding: 15px 5px; }
       .main { margin-left: 60px; padding: 20px; }
@@ -30,12 +54,39 @@
   </style>
 </head>
 <body>
+  <!-- PIN Lock Screen -->
+  <div id="pinScreen">
+    <div class="pin-card">
+      <h2>🔐 Admin</h2>
+      <p>กรอก PIN เพื่อเข้าสู่ระบบผู้ดูแล</p>
+      <input class="pin-input" type="password" inputmode="numeric" maxlength="8" id="pinInput" placeholder="••••" onkeydown="if(event.key==='Enter') verifyPin()">
+      <div class="pin-err" id="pinErr"></div>
+      <br>
+      <button class="pin-btn" onclick="verifyPin()">🔓 เข้าสู่ระบบ</button>
+    </div>
+  </div>
+
+  <!-- Set PIN Modal -->
+  <div class="modal-bg" id="setPinModal">
+    <div class="modal-box">
+      <h3>🔑 ตั้ง Admin PIN</h3>
+      <input type="password" inputmode="numeric" maxlength="8" id="newPin1" placeholder="PIN ใหม่">
+      <input type="password" inputmode="numeric" maxlength="8" id="newPin2" placeholder="ยืนยัน PIN">
+      <div class="pin-err" id="setPinErr"></div>
+      <div class="modal-row">
+        <button class="btn-cancel-sm" onclick="closeSetPin()">ยกเลิก</button>
+        <button class="btn-ok" onclick="savePin()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
   <div class="sidebar">
     <h3 style="margin-bottom:30px;">Admin</h3>
     <div class="nav-link active" onclick="showTab('dash')">📊 <span>แดชบอร์ด</span></div>
     <div class="nav-link" onclick="showTab('course')">📚 <span>จัดการวิชา</span></div>
     <div class="nav-link" onclick="showTab('student')">👥 <span>นักศึกษา</span></div>
     <div class="nav-link" style="margin-top:40px; color:#f87171;" onclick="window.location.href='index.html'">🏠 <span>หน้าหลัก</span></div>
+    <button class="pin-set-btn" onclick="openSetPin()">🔑 <span>ตั้ง PIN</span></button>
   </div>
 
   <div class="main">
@@ -72,6 +123,59 @@
   <script>
     const API = localStorage.getItem('gasApiUrl');
     let chart;
+
+    // ── PIN Logic ──────────────────────────────────────────────────
+    const SESSION_KEY = 'adminPinVerified';
+
+    async function verifyPin() {
+      const pin = document.getElementById('pinInput').value.trim();
+      if (!pin) { document.getElementById('pinErr').innerText = 'กรุณากรอก PIN'; return; }
+      if (!API)  { unlockAdmin(); return; } // ยังไม่ได้ตั้ง API ให้ผ่าน
+      try {
+        const res = await fetch(API + '?action=verifyAdminPin&pin=' + encodeURIComponent(pin));
+        const data = await res.json();
+        if (data.success) {
+          sessionStorage.setItem(SESSION_KEY, '1');
+          unlockAdmin();
+        } else {
+          document.getElementById('pinErr').innerText = '❌ ' + (data.message || 'PIN ไม่ถูกต้อง');
+          document.getElementById('pinInput').value = '';
+        }
+      } catch(e) {
+        // ถ้าเชื่อม API ไม่ได้ให้ผ่าน (fail-open) เพื่อไม่ให้ admin ล็อคตัวเอง
+        unlockAdmin();
+      }
+    }
+
+    function unlockAdmin() {
+      document.getElementById('pinScreen').style.display = 'none';
+      load();
+    }
+
+    function openSetPin()  { document.getElementById('setPinModal').classList.add('open'); }
+    function closeSetPin() { document.getElementById('setPinModal').classList.remove('open'); document.getElementById('setPinErr').innerText = ''; }
+
+    async function savePin() {
+      const p1 = document.getElementById('newPin1').value.trim();
+      const p2 = document.getElementById('newPin2').value.trim();
+      const err = document.getElementById('setPinErr');
+      if (!p1 || p1.length < 4) { err.innerText = 'PIN ต้องมีอย่างน้อย 4 หลัก'; return; }
+      if (p1 !== p2)             { err.innerText = 'PIN ไม่ตรงกัน'; return; }
+      if (!API)                  { err.innerText = 'ยังไม่ได้ตั้งค่า API'; return; }
+      try {
+        const res  = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'setAdminPin', pin: p1 }) });
+        const data = await res.json();
+        if (data.success) { alert('✅ ตั้ง PIN เรียบร้อย'); closeSetPin(); document.getElementById('newPin1').value = document.getElementById('newPin2').value = ''; }
+        else err.innerText = data.error || 'เกิดข้อผิดพลาด';
+      } catch(e) { err.innerText = 'เชื่อมต่อ API ไม่ได้'; }
+    }
+
+    // ── ตรวจ session — ถ้าเคย verify แล้วในแท็บนี้ไม่ต้องกรอกซ้ำ ──
+    if (sessionStorage.getItem(SESSION_KEY) === '1') {
+      document.getElementById('pinScreen').style.display = 'none';
+      load();
+    }
+    // ──────────────────────────────────────────────────────────────
 
     function showTab(t) {
       ['dash','course','student'].forEach(id => document.getElementById('tab-'+id).style.display = id===t?'block':'none');
