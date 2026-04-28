@@ -82,7 +82,10 @@
   <div class="table-card">
     <div class="table-header">
       <span class="table-title">รายการเข้าเรียน</span>
-      <span class="badge-count" id="rowCount">0 รายการ</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="badge-count" id="rowCount">0 รายการ</span>
+        <button onclick="exportCSV()" style="padding:5px 14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;font-family:'Sarabun',sans-serif;cursor:pointer;">⬇️ CSV</button>
+      </div>
     </div>
     <div id="loadingMsg">⏳ กรุณากด "ค้นหา" เพื่อโหลดข้อมูล</div>
     <div class="table-wrap" id="tableWrap" style="display:none;">
@@ -184,6 +187,7 @@
       if (dateParam) url += '&date='   + encodeURIComponent(dateParam);
 
       const rows = await gasGet(url);
+      lastRows = rows;
 
       document.getElementById('loadingMsg').style.display = 'none';
       document.getElementById('tableWrap').style.display  = 'block';
@@ -219,6 +223,23 @@
     } catch(e) {
       document.getElementById('loadingMsg').innerHTML = '<span style="color:#f87171">❌ โหลดข้อมูลไม่ได้: ' + e.message + '</span>';
     }
+  }
+
+  let lastRows = [];
+  function exportCSV() {
+    if (!lastRows.length) { alert('กรุณาโหลดข้อมูลก่อน'); return; }
+    const headers = ['รหัสนักศึกษา','ชื่อ-นามสกุล','วิชา','วันที่','เวลา','Latitude','Longitude','Google Map'];
+    const rows = lastRows.map(r => [
+      r.studentId||'', r.name||'', r.course||'',
+      r.date||'', r.time||'', r.lat||'', r.lng||'', r.mapLink||''
+    ].map(v => '"' + String(v).replace(/"/g,'""') + '"').join(','));
+    const csv  = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const d    = new Date().toLocaleDateString('th-TH').replace(/\//g,'-');
+    a.href = url; a.download = 'attendance_' + d + '.csv';
+    a.click(); URL.revokeObjectURL(url);
   }
 </script>
 </body>
