@@ -2,116 +2,368 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ระบบลงเวลาเรียนอัตโนมัติด้วยเทคโนโลยีการรู้จำใบหน้าแบบ Deep Learning</title>
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ระบบลงเวลาเรียนอัตโนมัติ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="js/api-config.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --white:   #ffffff;
+      --off:     #f7f8fa;
+      --border:  #e8eaed;
+      --muted:   #8f96a3;
+      --text:    #111318;
+      --sub:     #5a6270;
+      --accent:  #1a1a2e;
+      --green:   #16a34a;
+      --amber:   #d97706;
+      --radius:  18px;
+      --card-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 8px 24px rgba(0,0,0,0.05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
     body {
       font-family: 'Sarabun', sans-serif;
+      background: var(--off);
+      color: var(--text);
       min-height: 100vh;
-      background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d1b2a 100%);
-      color: #e2e8f0;
-      display: flex; flex-direction: column; align-items: center;
-      padding: 40px 20px 60px; position: relative; overflow-x: hidden;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: env(safe-area-inset-top, 0) 0 env(safe-area-inset-bottom, 0);
     }
-    body::before, body::after {
-      content: ''; position: fixed; border-radius: 50%;
-      filter: blur(80px); opacity: 0.15; pointer-events: none; z-index: 0;
+
+    /* ── HERO ── */
+    .hero {
+      width: 100%;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 52px 24px 36px;
+      text-align: center;
     }
-    body::before { width: 400px; height: 400px; background: #6366f1; top: -100px; left: -100px; }
-    body::after  { width: 350px; height: 350px; background: #10b981; bottom: -80px; right: -80px; }
-    .header { text-align: center; margin-bottom: 40px; position: relative; z-index: 1; animation: fadeInDown 0.6s ease; }
-    .logo-icon { font-size: 52px; display: block; margin-bottom: 12px; filter: drop-shadow(0 0 20px rgba(99,102,241,0.6)); }
-    h1 { font-size: 1.7em; font-weight: 700; background: linear-gradient(135deg, #a5b4fc, #e2e8f0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 6px; }
-    .subtitle { font-size: 0.85em; color: #64748b; letter-spacing: 0.03em; }
-    .api-warning { display: none; background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.4); color: #fcd34d; border-radius: 12px; padding: 12px 18px; width: 100%; max-width: 360px; margin-bottom: 20px; font-size: 0.88em; position: relative; z-index: 1; animation: fadeIn 0.5s ease; }
-    .api-warning a { color: #fbbf24; font-weight: 600; text-decoration: none; }
-    .menu-cards { width: 100%; max-width: 380px; display: flex; flex-direction: column; gap: 16px; position: relative; z-index: 1; }
-    .btn-menu { display: flex; align-items: center; gap: 16px; padding: 20px 22px; text-decoration: none; border-radius: 18px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); color: #e2e8f0; transition: all 0.3s ease; animation: fadeInUp 0.5s ease both; }
-    .btn-menu:nth-child(1) { animation-delay: 0.1s; }
-    .btn-menu:nth-child(2) { animation-delay: 0.2s; }
-    .btn-menu:nth-child(3) { animation-delay: 0.3s; }
-    .btn-menu:nth-child(4) { animation-delay: 0.4s; }
-    .btn-menu:nth-child(5) { animation-delay: 0.5s; }
-    .btn-menu:hover { transform: translateY(-4px); background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); }
-    .btn-register:hover { box-shadow: 0 8px 30px rgba(99,102,241,0.35); border-color: rgba(99,102,241,0.5); }
-    .btn-scan:hover     { box-shadow: 0 8px 30px rgba(16,185,129,0.35); border-color: rgba(16,185,129,0.5); }
-    .btn-dashboard:hover{ box-shadow: 0 8px 30px rgba(245,158,11,0.35); border-color: rgba(245,158,11,0.5); }
-    .btn-config:hover   { box-shadow: 0 8px 30px rgba(100,116,139,0.25); border-color: rgba(148,163,184,0.4); }
-    .btn-report:hover   { box-shadow: 0 8px 30px rgba(139,92,246,0.35); border-color: rgba(139,92,246,0.5); }
-    .card-icon { width: 52px; height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
-    .btn-register .card-icon  { background: linear-gradient(135deg, #6366f1, #4f46e5); box-shadow: 0 4px 15px rgba(99,102,241,0.4); }
-    .btn-scan     .card-icon  { background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 15px rgba(16,185,129,0.4); }
-    .btn-dashboard .card-icon { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 4px 15px rgba(245,158,11,0.4); }
-    .btn-config   .card-icon  { background: linear-gradient(135deg, #475569, #334155); box-shadow: 0 4px 15px rgba(71,85,105,0.4); }
-    .btn-report   .card-icon  { background: linear-gradient(135deg, #8b5cf6, #7c3aed); box-shadow: 0 4px 15px rgba(139,92,246,0.4); }
-    .card-text { flex: 1; text-align: left; }
-    .card-title { font-size: 1.05em; font-weight: 600; color: #f1f5f9; margin-bottom: 2px; }
-    .card-desc  { font-size: 0.8em; color: #64748b; }
-    .card-arrow { font-size: 18px; color: #475569; transition: transform 0.3s ease, color 0.3s ease; }
-    .btn-menu:hover .card-arrow { transform: translateX(4px); color: #94a3b8; }
-    @keyframes fadeIn     { from { opacity: 0; }                        to { opacity: 1; } }
-    @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
-    @keyframes fadeInUp   { from { opacity: 0; transform: translateY(20px);  } to { opacity: 1; transform: translateY(0); } }
+
+    .logo-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 72px; height: 72px;
+      background: var(--accent);
+      border-radius: 22px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(26,26,46,0.18);
+    }
+    .logo-wrap svg { width: 36px; height: 36px; }
+
+    .hero-title {
+      font-size: 1.65rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+    .hero-sub {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* ── STATUS PILL ── */
+    .status-row {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    .status-pill {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      background: #fff8e6;
+      border: 1px solid #fcd34d;
+      color: #92400e;
+      font-size: 0.78rem;
+      font-weight: 500;
+      padding: 7px 14px;
+      border-radius: 100px;
+      text-decoration: none;
+    }
+    .status-pill .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); }
+
+    /* ── DATE BADGE ── */
+    .date-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-align: center;
+      padding: 16px 0 4px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── MENU ── */
+    .menu {
+      width: 100%;
+      max-width: 480px;
+      padding: 8px 16px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .section-label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 16px 4px 6px;
+    }
+
+    .card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 18px 18px 18px 16px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      text-decoration: none;
+      color: var(--text);
+      box-shadow: var(--card-shadow);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0);
+      transition: background 0.15s ease;
+    }
+    .card:active { transform: scale(0.985); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+    .card-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--white);
+    }
+    .card-primary .card-title { color: var(--white); }
+    .card-primary .card-desc  { color: rgba(255,255,255,0.55); }
+    .card-primary .card-arrow { color: rgba(255,255,255,0.4); }
+
+    .icon-box {
+      width: 46px; height: 46px;
+      border-radius: 13px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 20px;
+    }
+    .card-primary .icon-box { background: rgba(255,255,255,0.12); }
+    .icon-green  { background: #dcfce7; }
+    .icon-blue   { background: #dbeafe; }
+    .icon-violet { background: #ede9fe; }
+    .icon-gray   { background: #f1f5f9; }
+
+    .card-body { flex: 1; min-width: 0; }
+    .card-title {
+      font-size: 0.975rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .card-desc {
+      font-size: 0.78rem;
+      color: var(--sub);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .card-arrow {
+      font-size: 1.1rem;
+      color: var(--border);
+      flex-shrink: 0;
+      transition: transform 0.15s ease;
+    }
+    .card:active .card-arrow { transform: translateX(3px); }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0; right: 0;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      padding: 8px 0 calc(8px + env(safe-area-inset-bottom, 0px));
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      text-decoration: none;
+      padding: 6px 0;
+      color: var(--muted);
+      transition: color 0.15s;
+    }
+    .nav-item.active { color: var(--accent); }
+    .nav-icon { font-size: 20px; line-height: 1; }
+    .nav-label { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.02em; }
+
+    /* spacer for bottom nav */
+    .bottom-spacer { height: 80px; }
+
+    /* ── ANIMATIONS ── */
+    .hero { animation: slideDown 0.4s cubic-bezier(0.16,1,0.3,1) both; }
+    .card { animation: fadeUp 0.35s cubic-bezier(0.16,1,0.3,1) both; }
+    .card:nth-child(1) { animation-delay: 0.05s; }
+    .card:nth-child(2) { animation-delay: 0.10s; }
+    .card:nth-child(3) { animation-delay: 0.15s; }
+    .card:nth-child(4) { animation-delay: 0.20s; }
+    .card:nth-child(5) { animation-delay: 0.25s; }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
-  <div class="header">
-    <span class="logo-icon">🎓</span>
-    <h1>ระบบลงเวลาเรียนอัตโนมัติ</h1>
-    <p class="subtitle">ด้วยเทคโนโลยีการรู้จำใบหน้าแบบ Deep Learning</p>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="logo-wrap">
+      <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="2" y="2" width="10" height="10" rx="2" stroke="white" stroke-width="2.2" fill="none"/>
+        <rect x="24" y="2" width="10" height="10" rx="2" stroke="white" stroke-width="2.2" fill="none"/>
+        <rect x="2" y="24" width="10" height="10" rx="2" stroke="white" stroke-width="2.2" fill="none"/>
+        <circle cx="18" cy="18" r="5" fill="white"/>
+        <path d="M24 18h8M4 18h8M18 4v8M18 24v8" stroke="white" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+      </svg>
+    </div>
+    <div class="hero-title">ระบบลงเวลาเรียนอัตโนมัติ</div>
+    <div class="hero-sub" style="font-family:'Sarabun',sans-serif; font-size:0.78rem; letter-spacing:0.01em; color:#8f96a3; line-height:1.5;">ด้วยเทคโนโลยีการรู้จำใบหน้าแบบ Deep Learning</div>
+    <div class="status-row">
+      <a id="apiWarning" href="config.html" class="status-pill">
+        <span class="dot"></span> ยังไม่ได้ตั้งค่า API
+      </a>
+    </div>
   </div>
-  <div id="apiWarning" class="api-warning">
-    ⚠️ ยังไม่ได้ตั้งค่า API — <a href="config.html">ไปตั้งค่าก่อน</a>
-  </div>
-  <div class="menu-cards">
-    <a href="register.html" class="btn-menu btn-register">
-      <div class="card-icon">👤</div>
-      <div class="card-text">
-        <div class="card-title">ลงทะเบียนนักเรียน</div>
-        <div class="card-desc">บันทึกข้อมูลและใบหน้า</div>
-      </div>
-      <span class="card-arrow">›</span>
-    </a>
-    <a href="scan.html" class="btn-menu btn-scan">
-      <div class="card-icon">📷</div>
-      <div class="card-text">
+
+  <div class="date-badge" id="dateBadge"></div>
+
+  <!-- MENU -->
+  <div class="menu">
+
+    <div class="section-label">นักเรียน</div>
+
+    <a href="scan.html" class="card card-primary">
+      <div class="icon-box">📷</div>
+      <div class="card-body">
         <div class="card-title">เช็คชื่อเข้าเรียน</div>
-        <div class="card-desc">สแกนใบหน้า + GPS</div>
+        <div class="card-desc">สแกนใบหน้า + ยืนยันตำแหน่ง GPS</div>
       </div>
       <span class="card-arrow">›</span>
     </a>
-    <a href="dashboard.html" class="btn-menu btn-dashboard">
-      <div class="card-icon">📊</div>
-      <div class="card-text">
+
+    <a href="register.html" class="card">
+      <div class="icon-box icon-blue">👤</div>
+      <div class="card-body">
+        <div class="card-title">ลงทะเบียนนักเรียน</div>
+        <div class="card-desc">บันทึกข้อมูลและใบหน้า 3 มุม</div>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+
+    <div class="section-label">อาจารย์</div>
+
+    <a href="dashboard.html" class="card">
+      <div class="icon-box icon-green">📊</div>
+      <div class="card-body">
         <div class="card-title">รายงานการเข้าเรียน</div>
-        <div class="card-desc">Dashboard สำหรับอาจารย์</div>
+        <div class="card-desc">ตารางข้อมูล · Export CSV</div>
       </div>
       <span class="card-arrow">›</span>
     </a>
-    <a href="report.html" class="btn-menu btn-report">
-      <div class="card-icon">📈</div>
-      <div class="card-text">
+
+    <a href="report.html" class="card">
+      <div class="icon-box icon-violet">📈</div>
+      <div class="card-body">
         <div class="card-title">รายงานกราฟ</div>
-        <div class="card-desc">วิเคราะห์ข้อมูลการเข้าเรียน</div>
+        <div class="card-desc">วิเคราะห์แนวโน้มการเข้าเรียน</div>
       </div>
       <span class="card-arrow">›</span>
     </a>
-    <a href="config.html" class="btn-menu btn-config">
-      <div class="card-icon">⚙️</div>
-      <div class="card-text">
+
+    <div class="section-label">ระบบ</div>
+
+    <a href="config.html" class="card">
+      <div class="icon-box icon-gray">⚙️</div>
+      <div class="card-body">
         <div class="card-title">ตั้งค่าระบบ</div>
-        <div class="card-desc">จัดการ GPS, API และวิชาเรียน</div>
+        <div class="card-desc">API · GPS · วิชาเรียน</div>
       </div>
       <span class="card-arrow">›</span>
     </a>
+
+    <a href="admin.html" class="card">
+      <div class="icon-box icon-gray">🛡️</div>
+      <div class="card-body">
+        <div class="card-title">Admin</div>
+        <div class="card-desc">จัดการนักเรียน · วิชา · สถิติ</div>
+      </div>
+      <span class="card-arrow">›</span>
+    </a>
+
   </div>
+
+  <div class="bottom-spacer"></div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <a href="index.html" class="nav-item active">
+      <span class="nav-icon">🏠</span>
+      <span class="nav-label">หน้าหลัก</span>
+    </a>
+    <a href="scan.html" class="nav-item">
+      <span class="nav-icon">📷</span>
+      <span class="nav-label">เช็คชื่อ</span>
+    </a>
+    <a href="dashboard.html" class="nav-item">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">รายงาน</span>
+    </a>
+    <a href="config.html" class="nav-item">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">ตั้งค่า</span>
+    </a>
+  </nav>
+
   <script>
+    // API warning
     if (!localStorage.getItem('gasApiUrl') && typeof GAS_API_URL === 'undefined') {
-      document.getElementById('apiWarning').style.display = 'block';
+      document.getElementById('apiWarning').style.display = 'flex';
     }
+    // Date badge
+    const now = new Date();
+    const days = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+    document.getElementById('dateBadge').textContent =
+      'วัน' + days[now.getDay()] + ' ' +
+      now.toLocaleDateString('th-TH', { day:'numeric', month:'long', year:'numeric' });
   </script>
 </body>
 </html>
