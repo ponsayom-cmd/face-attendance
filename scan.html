@@ -111,6 +111,12 @@
 
 <script>
 
+  // ── Service Worker — cache face-api models ─────────────────
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+  // ──────────────────────────────────────────────────────────
+
   // ── GAS fetch helpers ──────────────────────────────────────────
   // GAS redirect JSON ผ่าน script.googleusercontent.com
   // ต้องใช้ redirect:'follow' สำหรับ GET
@@ -305,7 +311,7 @@
     const btn = document.getElementById('btnConfirm');
     btn.disabled = true; btn.innerText = 'กำลังบันทึก...';
     try {
-      const result = await gasPost(API_URL, {
+      await gasPost(API_URL, {
           action: 'logAttendance',
           studentId: currentMatch.studentId,
           name:      currentMatch.name,
@@ -313,14 +319,6 @@
           lat:       currentLat,
           lng:       currentLng
         });
-
-      if (result.error === 'already_checked') {
-        confirmModal.style.display = 'none';
-        alert('⚠️ ' + currentMatch.name + '\nเช็คชื่อวิชา "' + selectedCourse + '" ไปแล้ววันนี้\n' + result.message);
-        cancelAttendance();
-        return;
-      }
-
       alert('✅ เช็คชื่อสำเร็จ! ' + currentMatch.name + ' วิชา ' + selectedCourse);
       window.location.href = 'index.html';
     } catch(e) {
