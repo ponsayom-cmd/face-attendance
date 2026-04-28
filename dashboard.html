@@ -114,7 +114,12 @@
   async function loadAttendance(){
     const course=document.getElementById('filterCourse').value;
     const rawDate=document.getElementById('filterDate').value;
-    let dateParam='';if(rawDate){const[y,m,d]=rawDate.split('-');dateParam=d+'/'+m+'/'+y;}
+    let dateParam='';
+    if(rawDate){
+      const[y,m,d]=rawDate.split('-');
+      // ตัด leading zero ให้ตรงกับที่ GAS เก็บ เช่น 28/4/2026
+      dateParam=parseInt(d)+'/'+parseInt(m)+'/'+y;
+    }
     document.getElementById('loadingMsg').style.display='block';document.getElementById('tableWrap').style.display='none';document.getElementById('loadingMsg').innerText='กำลังโหลด...';
     try{
       let url=API_URL+'?action=getAttendance';
