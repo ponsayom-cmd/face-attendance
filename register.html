@@ -92,6 +92,12 @@
 </div>
 
 <script>
+  // ── Service Worker — cache face-api models ─────────────────
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
+  // ──────────────────────────────────────────────────────────
+
   // ── GAS Helpers ────────────────────────────────────────────────
   async function gasGet(url) {
     const res  = await fetch(url, { redirect: 'follow' });
