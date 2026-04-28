@@ -334,6 +334,7 @@
         <select class="filter-select" id="filterCourse"><option value="">ทุกวิชา</option></select>
         <input type="date" class="filter-date" id="filterDate">
         <button class="btn-load" onclick="loadAll()">🔄 โหลดข้อมูล</button>
+        <button class="btn-load" onclick="exportCSV()" style="background:linear-gradient(135deg,#10b981,#059669);box-shadow:0 2px 12px rgba(16,185,129,0.35);">⬇️ Export CSV</button>
       </div>
     </div>
 
@@ -749,6 +750,23 @@
     page = Math.max(0, Math.min(page + dir, Math.ceil(filtered.length / PER_PAGE) - 1));
     renderTable();
     document.querySelector('.table-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  /* ──────── EXPORT CSV ──────── */
+  function exportCSV() {
+    if (!allRows || allRows.length === 0) { alert('ไม่มีข้อมูลสำหรับ Export'); return; }
+    const headers = ['รหัสนักศึกษา', 'ชื่อ-นามสกุล', 'วิชา', 'วันที่', 'เวลา', 'Latitude', 'Longitude', 'Google Map'];
+    const rows = allRows.map(r => [
+      r.studentId || '', r.name || '', r.course || '',
+      r.date || '', r.time || '', r.lat || '', r.lng || '', r.mapLink || ''
+    ].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','));
+    const csv  = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const date = new Date().toLocaleDateString('th-TH').replace(/\//g,'-');
+    a.href = url; a.download = 'attendance_' + date + '.csv';
+    a.click(); URL.revokeObjectURL(url);
   }
 </script>
 </body>
