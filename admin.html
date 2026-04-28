@@ -90,6 +90,11 @@
   </div>
 
   <div class="main">
+    <!-- PIN Warning Banner -->
+    <div id="pinWarningBanner" style="display:none; background:rgba(245,158,11,0.15); border:1px solid rgba(245,158,11,0.4); color:#fcd34d; border-radius:14px; padding:14px 20px; margin-bottom:24px; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <span>⚠️ ยังไม่ได้ตั้ง Admin PIN — ใครก็เข้าหน้านี้ได้</span>
+      <button onclick="openSetPin()" style="background:#f59e0b; color:#000; border:none; border-radius:8px; padding:8px 16px; font-weight:700; font-family:'Sarabun',sans-serif; cursor:pointer; white-space:nowrap;">🔑 ตั้ง PIN ตอนนี้</button>
+    </div>
     <div id="tab-dash">
       <h1 style="margin-bottom:30px;">สถิติการเข้าเรียน</h1>
       <div class="stat-grid">
@@ -130,25 +135,37 @@
     async function verifyPin() {
       const pin = document.getElementById('pinInput').value.trim();
       if (!pin) { document.getElementById('pinErr').innerText = 'กรุณากรอก PIN'; return; }
-      if (!API)  { unlockAdmin(); return; } // ยังไม่ได้ตั้ง API ให้ผ่าน
+      if (!API)  { unlockAdmin(true); return; }
       try {
         const res = await fetch(API + '?action=verifyAdminPin&pin=' + encodeURIComponent(pin));
         const data = await res.json();
         if (data.success) {
           sessionStorage.setItem(SESSION_KEY, '1');
-          unlockAdmin();
+          unlockAdmin(false);
         } else {
           document.getElementById('pinErr').innerText = '❌ ' + (data.message || 'PIN ไม่ถูกต้อง');
           document.getElementById('pinInput').value = '';
         }
       } catch(e) {
-        // ถ้าเชื่อม API ไม่ได้ให้ผ่าน (fail-open) เพื่อไม่ให้ admin ล็อคตัวเอง
-        unlockAdmin();
+        unlockAdmin(true);
       }
     }
 
-    function unlockAdmin() {
+    async function checkPinExists() {
+      if (!API) return false;
+      try {
+        const res  = await fetch(API + '?action=verifyAdminPin&pin=__check__');
+        const data = await res.json();
+        // ถ้า success=true และ pin เป็น __check__ แสดงว่ายังไม่มี PIN ตั้งไว้
+        return !data.success; // false = ยังไม่มี PIN
+      } catch(e) { return false; }
+    }
+
+    function unlockAdmin(noPinSet) {
       document.getElementById('pinScreen').style.display = 'none';
+      if (noPinSet) {
+        document.getElementById('pinWarningBanner').style.display = 'flex';
+      }
       load();
     }
 
@@ -165,16 +182,36 @@
       try {
         const res  = await fetch(API, { method: 'POST', body: JSON.stringify({ action: 'setAdminPin', pin: p1 }) });
         const data = await res.json();
-        if (data.success) { alert('✅ ตั้ง PIN เรียบร้อย'); closeSetPin(); document.getElementById('newPin1').value = document.getElementById('newPin2').value = ''; }
+        if (data.success) { alert('✅ ตั้ง PIN เรียบร้อย'); closeSetPin(); document.getElementById('newPin1').value = document.getElementById('newPin2').value = ''; document.getElementById('pinWarningBanner').style.display = 'none'; }
         else err.innerText = data.error || 'เกิดข้อผิดพลาด';
       } catch(e) { err.innerText = 'เชื่อมต่อ API ไม่ได้'; }
     }
 
     // ── ตรวจ session — ถ้าเคย verify แล้วในแท็บนี้ไม่ต้องกรอกซ้ำ ──
-    if (sessionStorage.getItem(SESSION_KEY) === '1') {
-      document.getElementById('pinScreen').style.display = 'none';
-      load();
-    }
+    (async function init() {
+      if (sessionStorage.getItem(SESSION_KEY) === '1') {
+        document.getElementById('pinScreen').style.display = 'none';
+        load();
+        return;
+      }
+      // เช็คว่ามี PIN ตั้งไว้ใน GAS หรือยัง
+      if (API) {
+        try {
+          const res  = await fetch(API + '?action=verifyAdminPin&pin=__probe__');
+          const data = await res.json();
+          if (data.success) {
+            // success + pin=__probe__ → ยังไม่มี PIN → ผ่านเลย + แสดง banner
+            unlockAdmin(true);
+            return;
+          }
+        } catch(e) {
+          unlockAdmin(true); return;
+        }
+      } else {
+        unlockAdmin(true); return;
+      }
+      // มี PIN อยู่ → แสดง lock screen ปกติ
+    })();
     // ──────────────────────────────────────────────────────────────
 
     function showTab(t) {
