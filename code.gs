@@ -21,6 +21,7 @@ function doGet(e) {
   else if (action === 'getAttendance')   result = getAttendance(e.parameter.course, e.parameter.date);
   else if (action === 'getStats')        result = getStats();
   else if (action === 'getStudentList')  result = getStudentList();
+  else if (action === 'checkStudentId')  result = checkStudentId(e.parameter.studentId);
   else result = { error: 'Unknown GET action: ' + action };
 
   return ContentService
@@ -42,7 +43,8 @@ function doPost(e) {
   const action = data.action;
   let result;
 
-  if      (action === 'registerUser')   result = registerUser(data.name, data.studentId, data.faceDescriptor);
+  if      (action === 'registerUser')   result = registerUser(data.name, data.studentId, data.faceDescriptor, data.course);
+  else if (action === 'checkDuplicate') result = checkDuplicate(data.faceDescriptor, data.studentId);
   else if (action === 'logAttendance')  result = logAttendance(data.studentId, data.name, data.course, data.lat, data.lng);
   else if (action === 'saveConfig')     result = saveConfig(data.lat, data.lng, data.radius);
   else if (action === 'saveCourse')     result = saveCourse(data.course);
@@ -65,21 +67,89 @@ function _getUserSheet() {
   let sheet = ss.getSheetByName('Users');
   if (!sheet) {
     sheet = ss.insertSheet('Users');
-    sheet.appendRow(['Name', 'StudentId', 'FaceDescriptor', 'RegisteredAt']);
+    sheet.appendRow(['Name', 'StudentId', 'FaceDescriptor', 'Course', 'RegisteredAt']);
   }
   return sheet;
 }
 
-// บันทึกนักเรียนใหม่ (รองรับทั้งแบบเก่า 2 col และใหม่ 3 col)
-function registerUser(name, studentId, faceDescriptor) {
+// บันทึกนักเรียนใหม่ — มีการเช็คซ้ำก่อน insert
+function registerUser(name, studentId, faceDescriptor, course) {
+  // Guard: รหัสนักศึกษาซ้ำ
+  if (studentId) {
+    const idCheck = checkStudentId(studentId);
+    if (idCheck.isDuplicate) {
+      return { error: 'duplicate_id', message: 'รหัสนักศึกษา ' + studentId + ' มีในระบบแล้ว (' + idCheck.name + ')' };
+    }
+  }
   const sheet = _getUserSheet();
   sheet.appendRow([
     name,
     studentId || '',
     JSON.stringify(faceDescriptor),
+    course    || '',
     new Date()
   ]);
   return { success: true, message: 'บันทึกข้อมูลใบหน้าเรียบร้อย' };
+}
+
+// ตรวจสอบรหัสนักศึกษาซ้ำ
+function checkStudentId(studentId) {
+  if (!studentId) return { isDuplicate: false };
+  const sheet = _getUserSheet();
+  const data  = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const sid = String(row[1] || '').trim();
+    if (sid && sid === String(studentId).trim()) {
+      return { isDuplicate: true, name: row[0], studentId: sid, course: row[3] || '' };
+    }
+  }
+  return { isDuplicate: false };
+}
+
+// ตรวจสอบใบหน้าซ้ำด้วย euclidean distance
+function checkDuplicate(faceDescriptor, excludeStudentId) {
+  const THRESHOLD = 0.45;
+  const sheet = _getUserSheet();
+  const data  = sheet.getDataRange().getValues();
+  if (data.length <= 1 || !faceDescriptor) return { isDuplicate: false };
+
+  const queryDesc = faceDescriptor;
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    let name, studentId, descriptorStr;
+    if (row.length >= 5) {
+      // schema ใหม่: Name | StudentId | Descriptor | Course | Date
+      name = row[0]; studentId = row[1]; descriptorStr = row[2];
+    } else if (row.length >= 4) {
+      // schema กลาง: Name | StudentId | Descriptor | Date
+      name = row[0]; studentId = row[1]; descriptorStr = row[2];
+    } else {
+      name = row[0]; studentId = ''; descriptorStr = row[1];
+    }
+
+    // ข้ามถ้าเป็นรหัสเดียวกัน (กรณีลงทะเบียนมุมเพิ่ม)
+    if (excludeStudentId && studentId && String(studentId) === String(excludeStudentId)) continue;
+
+    if (!descriptorStr) continue;
+    try {
+      const known = JSON.parse(descriptorStr);
+      const dist  = euclideanDistance(queryDesc, known);
+      if (dist < THRESHOLD) {
+        return { isDuplicate: true, name, studentId: String(studentId || ''), distance: dist };
+      }
+    } catch(e) {}
+  }
+  return { isDuplicate: false };
+}
+
+// คำนวณ Euclidean distance ระหว่าง descriptor 2 ตัว
+function euclideanDistance(a, b) {
+  if (a.length !== b.length) return 1.0;
+  let sum = 0;
+  for (let i = 0; i < a.length; i++) sum += (a[i] - b[i]) ** 2;
+  return Math.sqrt(sum);
 }
 
 // ดึงข้อมูลใบหน้าทั้งหมด (ส่งกลับ label + studentId + descriptor)
@@ -93,8 +163,11 @@ function getKnownFaces() {
     const row = data[i];
     // รองรับทั้ง schema เก่า (Name, Descriptor) และใหม่ (Name, StudentId, Descriptor)
     let name, studentId, descriptorStr;
-    if (row.length >= 4) {
-      // schema ใหม่: Name | StudentId | Descriptor | Date
+    if (row.length >= 5) {
+      // schema ใหม่: Name | StudentId | Descriptor | Course | Date
+      name = row[0]; studentId = row[1]; descriptorStr = row[2];
+    } else if (row.length >= 4) {
+      // schema กลาง: Name | StudentId | Descriptor | Date
       name = row[0]; studentId = row[1]; descriptorStr = row[2];
     } else {
       // schema เก่า: Name | Descriptor | Date
@@ -119,8 +192,8 @@ function getStudentList() {
   const list = [];
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    const name = row[0];
-    const dateVal = row.length >= 4 ? row[3] : row[2];
+    const name    = row[0];
+    const dateVal = row.length >= 5 ? row[4] : row.length >= 4 ? row[3] : row[2];
     if (name) list.push({ name, date: dateVal ? new Date(dateVal).toISOString() : '' });
   }
   return list;
