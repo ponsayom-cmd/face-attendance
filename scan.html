@@ -305,7 +305,7 @@
     const btn = document.getElementById('btnConfirm');
     btn.disabled = true; btn.innerText = 'กำลังบันทึก...';
     try {
-      await gasPost(API_URL, {
+      const result = await gasPost(API_URL, {
           action: 'logAttendance',
           studentId: currentMatch.studentId,
           name:      currentMatch.name,
@@ -313,6 +313,14 @@
           lat:       currentLat,
           lng:       currentLng
         });
+
+      if (result.error === 'already_checked') {
+        confirmModal.style.display = 'none';
+        alert('⚠️ ' + currentMatch.name + '\nเช็คชื่อวิชา "' + selectedCourse + '" ไปแล้ววันนี้\n' + result.message);
+        cancelAttendance();
+        return;
+      }
+
       alert('✅ เช็คชื่อสำเร็จ! ' + currentMatch.name + ' วิชา ' + selectedCourse);
       window.location.href = 'index.html';
     } catch(e) {
