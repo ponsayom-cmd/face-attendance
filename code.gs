@@ -21,7 +21,9 @@ function doGet(e) {
   else if (action === 'getAttendance')   result = getAttendance(e.parameter.course, e.parameter.date);
   else if (action === 'getStats')        result = getStats();
   else if (action === 'getStudentList')  result = getStudentList();
-  else if (action === 'checkStudentId')  result = checkStudentId(e.parameter.studentId);
+  else if (action === 'checkStudentId')      result = checkStudentId(e.parameter.studentId);
+  else if (action === 'checkTodayAttendance') result = checkTodayAttendance(e.parameter.studentId, e.parameter.course);
+  else if (action === 'verifyAdminPin')       result = verifyAdminPin(e.parameter.pin);
   else result = { error: 'Unknown GET action: ' + action };
 
   return ContentService
@@ -51,6 +53,7 @@ function doPost(e) {
   else if (action === 'addCourse')      result = saveCourse(data.courseName);   // admin.html ใช้ชื่อนี้
   else if (action === 'deleteCourse')   result = deleteCourse(data.courseName);
   else if (action === 'deleteStudent')  result = deleteStudent(data.name);
+  else if (action === 'setAdminPin')    result = setAdminPin(data.pin);
   else result = { error: 'Unknown POST action: ' + action };
 
   return ContentService
@@ -223,8 +226,15 @@ function _getAttSheet() {
   return sheet;
 }
 
-// บันทึกเช็คชื่อ
+// บันทึกเช็คชื่อ — มีการกันซ้ำในวันเดียวกัน
 function logAttendance(studentId, name, course, lat, lng) {
+  // Guard: เช็คชื่อวิชานี้วันนี้แล้วหรือยัง
+  if (studentId || name) {
+    const dupCheck = checkTodayAttendance(studentId || name, course);
+    if (dupCheck.isDuplicate) {
+      return { error: 'already_checked', message: 'เช็คชื่อวิชา "' + course + '" ไปแล้ววันนี้ เวลา ' + dupCheck.time };
+    }
+  }
   const sheet = _getAttSheet();
   const now = new Date();
   const tz  = Session.getScriptTimeZone();
@@ -375,4 +385,85 @@ function getConfig() {
     if (v4 !== '') config.radius = parseFloat(v4);
   }
   return config;
+}
+
+// ============================================================
+//  ATTENDANCE DUPLICATE CHECK — กันเช็คชื่อซ้ำในวันเดียวกัน
+// ============================================================
+
+function checkTodayAttendance(studentIdOrName, course) {
+  const sheet = _getAttSheet();
+  const data  = sheet.getDataRange().getValues();
+  if (data.length <= 1) return { isDuplicate: false };
+
+  const tz      = Session.getScriptTimeZone();
+  const today   = Utilities.formatDate(new Date(), tz, 'd/M/yyyy');
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    let sid, name, rowCourse, time, date;
+    if (row.length >= 8) {
+      [sid, name, rowCourse, time, date] = row;
+    } else {
+      sid = ''; [name, time, date, , , rowCourse] = row;
+    }
+    date = String(date).replace(/^'/, '').trim();
+
+    const matchId   = sid  && String(sid).trim()  === String(studentIdOrName).trim();
+    const matchName = name && String(name).trim()  === String(studentIdOrName).trim();
+    const matchCourse = !course || String(rowCourse).trim() === String(course).trim();
+
+    if ((matchId || matchName) && matchCourse && date === today) {
+      return { isDuplicate: true, time: String(time) };
+    }
+  }
+  return { isDuplicate: false };
+}
+
+// ============================================================
+//  ADMIN PIN — จัดการ PIN ผู้ดูแล
+// ============================================================
+
+function _getConfigSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName('Config');
+  if (!sheet) {
+    sheet = ss.insertSheet('Config');
+    sheet.getRange('A1:B1').setValues([['Parameter', 'Value']]);
+    sheet.getRange('A2:A4').setValues([['Target Latitude'], ['Target Longitude'], ['Allowed Radius (KM)']]);
+    sheet.setColumnWidth(1, 160);
+  }
+  return sheet;
+}
+
+function setAdminPin(pin) {
+  if (!pin || String(pin).length < 4) return { error: 'PIN ต้องมีอย่างน้อย 4 หลัก' };
+  const sheet = _getConfigSheet();
+  const data  = sheet.getDataRange().getValues();
+  // หา row ที่มี "Admin PIN" อยู่แล้ว
+  let pinRow = -1;
+  for (let i = 0; i < data.length; i++) {
+    if (String(data[i][0]).trim() === 'Admin PIN') { pinRow = i + 1; break; }
+  }
+  if (pinRow > 0) {
+    sheet.getRange(pinRow, 2).setValue(String(pin));
+  } else {
+    sheet.appendRow(['Admin PIN', String(pin)]);
+  }
+  return { success: true, message: 'ตั้ง Admin PIN เรียบร้อย' };
+}
+
+function verifyAdminPin(pin) {
+  const sheet = _getConfigSheet();
+  const data  = sheet.getDataRange().getValues();
+  for (let i = 0; i < data.length; i++) {
+    if (String(data[i][0]).trim() === 'Admin PIN') {
+      const stored = String(data[i][1]).trim();
+      if (!stored) return { success: true }; // ยังไม่ได้ตั้ง PIN → ผ่านได้
+      return stored === String(pin).trim()
+        ? { success: true }
+        : { success: false, message: 'PIN ไม่ถูกต้อง' };
+    }
+  }
+  return { success: true }; // ยังไม่มี PIN ในระบบ → ผ่านได้
 }
