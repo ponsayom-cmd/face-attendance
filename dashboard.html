@@ -2,244 +2,145 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>รายงานการเข้าเรียน</title>
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="js/api-config.js"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Sarabun', sans-serif; min-height: 100vh; background: linear-gradient(135deg, #0f0f23 0%, #1a1a3e 50%, #0d1b2a 100%); color: #e2e8f0; display: flex; flex-direction: column; align-items: center; padding: 28px 16px 60px; position: relative; }
-    body::before { content: ''; position: fixed; width: 400px; height: 400px; background: #f59e0b; border-radius: 50%; filter: blur(120px); opacity: 0.07; top: -100px; right: -100px; pointer-events: none; z-index: 0; }
-    .container { width: 100%; max-width: 700px; position: relative; z-index: 1; animation: fadeIn 0.5s ease; }
-    .page-header { margin-bottom: 22px; }
-    .back-btn { display: inline-flex; align-items: center; gap: 6px; color: #64748b; text-decoration: none; font-size: 0.88em; padding: 6px 12px; border-radius: 20px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); transition: all 0.25s ease; margin-bottom: 14px; }
-    .back-btn:hover { color: #e2e8f0; background: rgba(255,255,255,0.1); }
-    h2 { font-size: 1.6em; font-weight: 700; background: linear-gradient(135deg, #fcd34d, #e2e8f0); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 4px; }
-    .page-subtitle { font-size: 0.83em; color: #64748b; }
-    /* Filter bar */
-    .filter-bar { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin-bottom: 18px; }
-    .filter-bar select, .filter-bar input { padding: 11px 14px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; color: #e2e8f0; font-size: 14px; font-family: 'Sarabun', sans-serif; outline: none; transition: all 0.3s ease; }
-    .filter-bar select:focus, .filter-bar input:focus { border-color: rgba(245,158,11,0.5); box-shadow: 0 0 0 3px rgba(245,158,11,0.1); }
-    .filter-bar select option { background: #1e1e3f; }
-    .filter-bar input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.7); }
-    .btn-search { padding: 11px 20px; background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; font-family: 'Sarabun', sans-serif; cursor: pointer; transition: all 0.25s ease; white-space: nowrap; }
-    .btn-search:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(245,158,11,0.4); }
-    /* Stats */
-    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
-    .stat-card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 14px 16px; text-align: center; }
-    .stat-num  { font-size: 26px; font-weight: 700; color: #fcd34d; }
-    .stat-label{ font-size: 0.8em; color: #64748b; margin-top: 2px; }
-    /* Table card */
-    .table-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09); border-radius: 18px; overflow: hidden; }
-    .table-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px 14px; border-bottom: 1px solid rgba(255,255,255,0.07); }
-    .table-title { font-size: 0.95em; font-weight: 600; color: #c7d2fe; }
-    .badge-count { background: rgba(99,102,241,0.2); color: #a5b4fc; font-size: 12px; padding: 3px 10px; border-radius: 20px; }
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    thead th { padding: 10px 14px; text-align: left; color: #64748b; font-size: 0.8em; font-weight: 600; letter-spacing: 0.04em; border-bottom: 1px solid rgba(255,255,255,0.07); }
-    tbody tr { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 0.2s ease; }
-    tbody tr:hover { background: rgba(255,255,255,0.04); }
-    tbody tr:last-child { border-bottom: none; }
-    tbody td { padding: 10px 14px; color: #cbd5e1; vertical-align: middle; }
-    .td-id    { color: #64748b; font-size: 13px; }
-    .td-name  { font-weight: 600; color: #e2e8f0; }
-    .td-course{ color: #a5b4fc; font-size: 13px; }
-    .td-time  { color: #34d399; font-size: 13px; }
-    .td-map   { text-align: center; }
-    .map-btn  { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #60a5fa; text-decoration: none; padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(96,165,250,0.25); transition: all 0.2s ease; }
-    .map-btn:hover { background: rgba(96,165,250,0.1); border-color: rgba(96,165,250,0.5); }
-    .empty-state { padding: 48px 20px; text-align: center; color: #475569; }
-    .empty-icon { font-size: 40px; margin-bottom: 10px; }
-    #loadingMsg { text-align: center; padding: 32px; color: #64748b; font-size: 0.9em; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    :root { --white:#fff; --off:#f7f8fa; --border:#e8eaed; --muted:#8f96a3; --text:#111318; --sub:#5a6270; --accent:#1a1a2e; --green:#16a34a; --radius:18px; }
+    * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+    body { font-family:'Sarabun',sans-serif; background:var(--off); color:var(--text); min-height:100dvh; display:flex; flex-direction:column; align-items:center; padding-bottom:40px; }
+    .topbar { width:100%; background:var(--white); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; padding:calc(env(safe-area-inset-top,0px)+14px) 16px 14px; position:sticky; top:0; z-index:10; }
+    .back-btn { width:36px; height:36px; border-radius:10px; background:var(--off); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; text-decoration:none; color:var(--text); font-size:18px; flex-shrink:0; }
+    .topbar-title { font-size:1rem; font-weight:600; flex:1; }
+    .topbar-sub { font-family:'IBM Plex Mono',monospace; font-size:.65rem; color:var(--muted); margin-top:1px; }
+    .btn-export { padding:8px 14px; background:var(--accent); color:var(--white); border:none; border-radius:9px; font-size:.78rem; font-weight:600; font-family:'Sarabun',sans-serif; cursor:pointer; white-space:nowrap; }
+    .page { width:100%; max-width:720px; padding:16px; display:flex; flex-direction:column; gap:14px; }
+
+    /* filter */
+    .filter-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius); padding:16px; display:flex; flex-direction:column; gap:10px; }
+    .filter-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .field-label { font-size:.72rem; font-weight:600; color:var(--muted); letter-spacing:.07em; text-transform:uppercase; margin-bottom:5px; }
+    select, input[type="date"] { width:100%; padding:11px 13px; background:var(--off); border:1px solid var(--border); border-radius:11px; font-size:14px; font-family:'Sarabun',sans-serif; color:var(--text); outline:none; appearance:none; transition:border-color .2s; }
+    select:focus, input[type="date"]:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(26,26,46,.07); }
+    input[type="date"]::-webkit-calendar-picker-indicator { opacity:.5; }
+    .btn-search { width:100%; padding:12px; background:var(--accent); color:var(--white); border:none; border-radius:11px; font-size:.95rem; font-weight:600; font-family:'Sarabun',sans-serif; cursor:pointer; transition:opacity .2s; }
+    .btn-search:active { opacity:.8; }
+
+    /* stats */
+    .stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+    .stat-card { background:var(--white); border:1px solid var(--border); border-radius:14px; padding:14px 12px; text-align:center; }
+    .stat-num { font-size:1.6rem; font-weight:700; color:var(--text); font-family:'IBM Plex Mono',monospace; }
+    .stat-label { font-size:.72rem; color:var(--muted); margin-top:2px; }
+
+    /* table card */
+    .table-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+    .table-head { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border); }
+    .table-head-title { font-size:.9rem; font-weight:600; }
+    .badge { background:var(--off); border:1px solid var(--border); color:var(--sub); font-size:.72rem; padding:3px 10px; border-radius:20px; font-family:'IBM Plex Mono',monospace; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; font-size:.875rem; min-width:540px; }
+    thead th { padding:10px 14px; text-align:left; color:var(--muted); font-size:.7rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase; border-bottom:1px solid var(--border); white-space:nowrap; }
+    tbody tr { border-bottom:1px solid var(--border); transition:background .15s; }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:var(--off); }
+    tbody td { padding:11px 14px; color:var(--sub); vertical-align:middle; }
+    .td-name { font-weight:600; color:var(--text); }
+    .td-id   { font-family:'IBM Plex Mono',monospace; font-size:.78rem; color:var(--muted); }
+    .td-time { font-family:'IBM Plex Mono',monospace; font-size:.78rem; color:var(--green); }
+    .td-course { font-size:.82rem; }
+    .map-btn { display:inline-flex; align-items:center; gap:4px; font-size:.75rem; color:var(--accent); text-decoration:none; padding:4px 10px; border-radius:7px; border:1px solid var(--border); background:var(--off); transition:background .15s; white-space:nowrap; }
+    .map-btn:hover { background:var(--border); }
+    .empty-state { padding:48px 20px; text-align:center; color:var(--muted); }
+    .empty-icon { font-size:36px; margin-bottom:10px; }
+    .loading-msg { padding:32px; text-align:center; color:var(--muted); font-size:.875rem; }
   </style>
 </head>
 <body>
-<div class="container">
-  <div class="page-header">
-    <a href="index.html" class="back-btn">← กลับ</a>
-    <h2>📊 รายงานการเข้าเรียน</h2>
-    <p class="page-subtitle">ข้อมูลการเช็คชื่อนักเรียน</p>
-  </div>
-
-  <!-- Filter -->
-  <div class="filter-bar">
-    <select id="filterCourse">
-      <option value="">-- ทุกวิชา --</option>
-    </select>
-    <input type="date" id="filterDate">
-    <button class="btn-search" onclick="loadAttendance()">🔍 ค้นหา</button>
-  </div>
-
-  <!-- Stats -->
-  <div class="stats-row">
-    <div class="stat-card"><div class="stat-num" id="statTotal">0</div><div class="stat-label">รวมเช็คชื่อ</div></div>
-    <div class="stat-card"><div class="stat-num" id="statStudents">0</div><div class="stat-label">นักเรียน (คนไม่ซ้ำ)</div></div>
-    <div class="stat-card"><div class="stat-num" id="statCourses">0</div><div class="stat-label">วิชา</div></div>
-  </div>
-
-  <!-- Table -->
-  <div class="table-card">
-    <div class="table-header">
-      <span class="table-title">รายการเข้าเรียน</span>
-      <div style="display:flex;gap:8px;align-items:center;">
-        <span class="badge-count" id="rowCount">0 รายการ</span>
-        <button onclick="exportCSV()" style="padding:5px 14px;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;font-family:'Sarabun',sans-serif;cursor:pointer;">⬇️ CSV</button>
-      </div>
+  <div class="topbar">
+    <a href="index.html" class="back-btn">‹</a>
+    <div style="flex:1">
+      <div class="topbar-title">รายงานการเข้าเรียน</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);margin-top:1px;">ATTENDANCE REPORT</div>
     </div>
-    <div id="loadingMsg">⏳ กรุณากด "ค้นหา" เพื่อโหลดข้อมูล</div>
-    <div class="table-wrap" id="tableWrap" style="display:none;">
-      <table>
-        <thead>
-          <tr>
-            <th>รหัสนักศึกษา</th>
-            <th>ชื่อ-นามสกุล</th>
-            <th>วิชา</th>
-            <th>วันที่</th>
-            <th>เวลา</th>
-            <th>แผนที่</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-      <div class="empty-state" id="emptyState" style="display:none;">
-        <div class="empty-icon">📭</div>
-        <div>ไม่พบข้อมูลที่ตรงกับเงื่อนไข</div>
+    <button class="btn-export" onclick="exportCSV()">⬇ CSV</button>
+  </div>
+
+  <div class="page">
+    <div class="filter-card">
+      <div class="filter-row">
+        <div>
+          <div class="field-label">วิชา</div>
+          <select id="filterCourse"><option value="">— ทุกวิชา —</option></select>
+        </div>
+        <div>
+          <div class="field-label">วันที่</div>
+          <input type="date" id="filterDate">
+        </div>
+      </div>
+      <button class="btn-search" onclick="loadAttendance()">ค้นหา</button>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="statTotal">—</div><div class="stat-label">รวมเช็คชื่อ</div></div>
+      <div class="stat-card"><div class="stat-num" id="statStudents">—</div><div class="stat-label">นักเรียน</div></div>
+      <div class="stat-card"><div class="stat-num" id="statCourses">—</div><div class="stat-label">วิชา</div></div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-head">
+        <span class="table-head-title">รายการ</span>
+        <span class="badge" id="rowCount">0</span>
+      </div>
+      <div class="loading-msg" id="loadingMsg">กด "ค้นหา" เพื่อโหลดข้อมูล</div>
+      <div class="table-wrap" id="tableWrap" style="display:none">
+        <table>
+          <thead><tr><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>วิชา</th><th>วันที่</th><th>เวลา</th><th>แผนที่</th></tr></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div class="empty-state" id="emptyState" style="display:none"><div class="empty-icon">📭</div><div>ไม่พบข้อมูล</div></div>
       </div>
     </div>
   </div>
-</div>
 
 <script>
-
-  // ── GAS fetch helpers ──────────────────────────────────────────
-  // GAS redirect JSON ผ่าน script.googleusercontent.com
-  // ต้องใช้ redirect:'follow' สำหรับ GET
-  // ต้องใช้ Content-Type:'text/plain' สำหรับ POST (ข้าม CORS preflight)
-  async function gasGet(url) {
-    const res = await fetch(url, { redirect: 'follow' });
-    const text = await res.text();
-    try { return JSON.parse(text); }
-    catch(e) { throw new Error('GAS ตอบกลับไม่ใช่ JSON: ' + text.substring(0,150)); }
+  async function gasGet(url){const r=await fetch(url,{redirect:'follow'});const t=await r.text();try{return JSON.parse(t);}catch(e){throw new Error(t.substring(0,100));}}
+  const API_URL=localStorage.getItem('gasApiUrl')||(typeof GAS_API_URL!=='undefined'?GAS_API_URL:'');
+  let lastRows=[];
+  // default today
+  (()=>{const n=new Date(),y=n.getFullYear(),m=String(n.getMonth()+1).padStart(2,'0'),d=String(n.getDate()).padStart(2,'0');document.getElementById('filterDate').value=y+'-'+m+'-'+d;})();
+  window.addEventListener('load',async()=>{if(!API_URL){document.getElementById('loadingMsg').innerHTML='<span style="color:#dc2626">ยังไม่ได้ตั้งค่า API — <a href="config.html">ไปตั้งค่า</a></span>';return;}await loadCourses();await loadAttendance();});
+  async function loadCourses(){try{const c=await gasGet(API_URL+'?action=getCourses');const s=document.getElementById('filterCourse');c.forEach(x=>{const o=document.createElement('option');o.value=o.textContent=x;s.appendChild(o);});}catch(e){}}
+  async function loadAttendance(){
+    const course=document.getElementById('filterCourse').value;
+    const rawDate=document.getElementById('filterDate').value;
+    let dateParam='';if(rawDate){const[y,m,d]=rawDate.split('-');dateParam=d+'/'+m+'/'+y;}
+    document.getElementById('loadingMsg').style.display='block';document.getElementById('tableWrap').style.display='none';document.getElementById('loadingMsg').innerText='กำลังโหลด...';
+    try{
+      let url=API_URL+'?action=getAttendance';
+      if(course) url+='&course='+encodeURIComponent(course);
+      if(dateParam) url+='&date='+encodeURIComponent(dateParam);
+      const rows=await gasGet(url);lastRows=rows;
+      document.getElementById('loadingMsg').style.display='none';document.getElementById('tableWrap').style.display='block';
+      const uStudents=new Set(rows.map(r=>r.studentId||r.name)).size;
+      const uCourses=new Set(rows.map(r=>r.course)).size;
+      document.getElementById('statTotal').innerText=rows.length;
+      document.getElementById('statStudents').innerText=uStudents;
+      document.getElementById('statCourses').innerText=uCourses;
+      document.getElementById('rowCount').innerText=rows.length+' รายการ';
+      const tbody=document.getElementById('tableBody');tbody.innerHTML='';
+      if(rows.length===0){document.getElementById('emptyState').style.display='block';return;}
+      document.getElementById('emptyState').style.display='none';
+      rows.forEach(r=>{const tr=document.createElement('tr');tr.innerHTML='<td class="td-id">'+(r.studentId||'—')+'</td><td class="td-name">'+r.name+'</td><td class="td-course">'+(r.course||'—')+'</td><td class="td-id">'+(r.date||'—')+'</td><td class="td-time">'+(r.time||'—')+'</td><td>'+(r.mapLink?'<a class="map-btn" href="'+r.mapLink+'" target="_blank">📍 แผนที่</a>':'—')+'</td>';tbody.appendChild(tr);});
+    }catch(e){document.getElementById('loadingMsg').innerHTML='<span style="color:#dc2626">โหลดไม่ได้: '+e.message+'</span>';}
   }
-  async function gasPost(url, body) {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(body),
-      redirect: 'follow'
-    });
-    const text = await res.text();
-    try { return JSON.parse(text); }
-    catch(e) { throw new Error('GAS ตอบกลับไม่ใช่ JSON: ' + text.substring(0,150)); }
-  }
-  // ───────────────────────────────────────────────────────────────
-  const API_URL = localStorage.getItem('gasApiUrl') || (typeof GAS_API_URL !== 'undefined' ? GAS_API_URL : '');
-
-  // Set today's date as default
-  // ใช้ local date ป้องกันวันคลาด (UTC vs +7)
-  (function(){
-    const n=new Date(), y=n.getFullYear(),
-      m=String(n.getMonth()+1).padStart(2,'0'),
-      d=String(n.getDate()).padStart(2,'0');
-    document.getElementById('filterDate').value = y+'-'+m+'-'+d;
-  })();
-
-  window.addEventListener('load', async () => {
-    if (!API_URL) {
-      document.getElementById('loadingMsg').innerHTML = '<span style="color:#f87171">❌ ยังไม่ได้ตั้งค่า API — <a href="config.html" style="color:#fbbf24">ไปตั้งค่า</a></span>';
-      return;
-    }
-    await loadCourses();
-    await loadAttendance();
-  });
-
-  async function loadCourses() {
-    try {
-      const courses = await gasGet(API_URL + '?action=getCourses');
-      const sel = document.getElementById('filterCourse');
-      courses.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = opt.textContent = c;
-        sel.appendChild(opt);
-      });
-    } catch(e) {}
-  }
-
-  async function loadAttendance() {
-    const course = document.getElementById('filterCourse').value;
-    const rawDate = document.getElementById('filterDate').value;
-
-    // Convert yyyy-mm-dd -> dd/MM/yyyy for GAS comparison
-    let dateParam = '';
-    if (rawDate) {
-      const [y, m, d] = rawDate.split('-');
-      dateParam = d + '/' + m + '/' + y;
-    }
-
-    document.getElementById('loadingMsg').style.display = 'block';
-    document.getElementById('tableWrap').style.display  = 'none';
-    document.getElementById('loadingMsg').innerHTML = '⏳ กำลังโหลดข้อมูล...';
-
-    try {
-      let url = API_URL + '?action=getAttendance';
-      if (course)    url += '&course=' + encodeURIComponent(course);
-      if (dateParam) url += '&date='   + encodeURIComponent(dateParam);
-
-      const rows = await gasGet(url);
-      lastRows = rows;
-
-      document.getElementById('loadingMsg').style.display = 'none';
-      document.getElementById('tableWrap').style.display  = 'block';
-
-      // Stats
-      const uniqueStudents = new Set(rows.map(r => r.studentId || r.name)).size;
-      const uniqueCourses  = new Set(rows.map(r => r.course)).size;
-      document.getElementById('statTotal').innerText    = rows.length;
-      document.getElementById('statStudents').innerText = uniqueStudents;
-      document.getElementById('statCourses').innerText  = uniqueCourses;
-      document.getElementById('rowCount').innerText     = rows.length + ' รายการ';
-
-      const tbody = document.getElementById('tableBody');
-      tbody.innerHTML = '';
-
-      if (rows.length === 0) {
-        document.getElementById('emptyState').style.display = 'block';
-        return;
-      }
-      document.getElementById('emptyState').style.display = 'none';
-
-      rows.forEach(r => {
-        const tr = document.createElement('tr');
-        tr.innerHTML =
-          '<td class="td-id">'     + (r.studentId || '-') + '</td>' +
-          '<td class="td-name">'   + r.name + '</td>' +
-          '<td class="td-course">' + (r.course || '-') + '</td>' +
-          '<td class="td-id">'     + (r.date   || '-') + '</td>' +
-          '<td class="td-time">'   + (r.time   || '-') + '</td>' +
-          '<td class="td-map">'    + (r.mapLink ? '<a class="map-btn" href="' + r.mapLink + '" target="_blank">📍 แผนที่</a>' : '-') + '</td>';
-        tbody.appendChild(tr);
-      });
-    } catch(e) {
-      document.getElementById('loadingMsg').innerHTML = '<span style="color:#f87171">❌ โหลดข้อมูลไม่ได้: ' + e.message + '</span>';
-    }
-  }
-
-  let lastRows = [];
-  function exportCSV() {
-    if (!lastRows.length) { alert('กรุณาโหลดข้อมูลก่อน'); return; }
-    const headers = ['รหัสนักศึกษา','ชื่อ-นามสกุล','วิชา','วันที่','เวลา','Latitude','Longitude','Google Map'];
-    const rows = lastRows.map(r => [
-      r.studentId||'', r.name||'', r.course||'',
-      r.date||'', r.time||'', r.lat||'', r.lng||'', r.mapLink||''
-    ].map(v => '"' + String(v).replace(/"/g,'""') + '"').join(','));
-    const csv  = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    const d    = new Date().toLocaleDateString('th-TH').replace(/\//g,'-');
-    a.href = url; a.download = 'attendance_' + d + '.csv';
-    a.click(); URL.revokeObjectURL(url);
+  function exportCSV(){
+    if(!lastRows.length){alert('กรุณาโหลดข้อมูลก่อน');return;}
+    const h=['รหัสนักศึกษา','ชื่อ-นามสกุล','วิชา','วันที่','เวลา','Latitude','Longitude','Google Map'];
+    const rows=lastRows.map(r=>[r.studentId||'',r.name||'',r.course||'',r.date||'',r.time||'',r.lat||'',r.lng||'',r.mapLink||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+    const csv='\uFEFF'+h.join(',')+'\n'+rows.join('\n');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+    a.download='attendance_'+new Date().toLocaleDateString('th-TH').replace(/\//g,'-')+'.csv';a.click();
   }
 </script>
 </body>
