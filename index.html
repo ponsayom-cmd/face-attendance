@@ -386,7 +386,7 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <script>
     if (!localStorage.getItem('gasApiUrl') && typeof GAS_API_URL === 'undefined') {
       document.getElementById('apiWarning').style.display = 'flex';
@@ -398,14 +398,18 @@
       now.toLocaleDateString('th-TH', { day:'numeric', month:'long', year:'numeric' });
 
     function openQR() {
-      const base = window.location.href.replace(/index\.html.*$/, '').replace(/\?.*$/, '');
+      const base = window.location.href.replace(/[^/]*$/, '');
       const scanUrl = base + 'scan.html';
       document.getElementById('qrUrl').textContent = scanUrl;
       const wrap = document.getElementById('qrCanvas');
       wrap.innerHTML = '';
-      const canvas = document.createElement('canvas');
-      wrap.appendChild(canvas);
-      QRCode.toCanvas(canvas, scanUrl, { width:220, margin:1, color:{ dark:'#111318', light:'#f7f8fa' } });
+      new QRCode(wrap, {
+        text: scanUrl,
+        width: 220, height: 220,
+        colorDark: '#111318',
+        colorLight: '#f7f8fa',
+        correctLevel: QRCode.CorrectLevel.H
+      });
       document.getElementById('qrModal').classList.add('open');
     }
     function closeQR() { document.getElementById('qrModal').classList.remove('open'); }
