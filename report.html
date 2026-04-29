@@ -99,6 +99,29 @@
     /* ── LAST UPDATE ── */
     .last-update { font-family:'IBM Plex Mono',monospace; font-size:.68rem; color:var(--muted); text-align:right; }
 
+    /* ── ALERT SECTION ── */
+    .alert-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+    .alert-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); }
+    .alert-head-title { font-size:.9rem; font-weight:600; }
+    .threshold-row { display:flex; align-items:center; gap:8px; font-size:.8rem; color:var(--muted); }
+    .threshold-row input[type="range"] { width:80px; accent-color:var(--red); }
+    .threshold-val { font-family:'IBM Plex Mono',monospace; font-size:.8rem; color:var(--red); font-weight:600; min-width:30px; }
+    .alert-list { display:flex; flex-direction:column; }
+    .alert-row { display:flex; align-items:center; gap:12px; padding:12px 18px; border-bottom:1px solid var(--border); transition:background .12s; }
+    .alert-row:last-child { border-bottom:none; }
+    .alert-row:hover { background:var(--off); }
+    .alert-avatar { width:36px; height:36px; border-radius:10px; background:var(--off); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; }
+    .alert-name { font-weight:600; font-size:.875rem; color:var(--text); }
+    .alert-meta { font-size:.75rem; color:var(--muted); margin-top:1px; }
+    .alert-right { margin-left:auto; text-align:right; }
+    .pct-badge { font-family:'IBM Plex Mono',monospace; font-size:.85rem; font-weight:700; }
+    .pct-low  { color:var(--red); }
+    .pct-mid  { color:#d97706; }
+    .pct-ok   { color:var(--green); }
+    .progress-bar { width:80px; height:4px; background:var(--border); border-radius:2px; margin-top:4px; overflow:hidden; margin-left:auto; }
+    .progress-fill { height:100%; border-radius:2px; transition:width .4s ease; }
+    .alert-empty { padding:32px 20px; text-align:center; color:var(--muted); font-size:.875rem; }
+
     /* ── RESPONSIVE ── */
     @media (max-width:768px) {
       .kpi-row { grid-template-columns:repeat(2,1fr); }
@@ -179,6 +202,21 @@
           <span class="chart-title">การเช็คชื่อตามช่วงเวลา</span>
         </div>
         <canvas id="chartHour" height="180"></canvas>
+      </div>
+    </div>
+
+    <!-- ATTENDANCE ALERT -->
+    <div class="alert-card">
+      <div class="alert-head">
+        <span class="alert-head-title">⚠️ แจ้งเตือนเข้าเรียนต่ำกว่าเกณฑ์</span>
+        <div class="threshold-row">
+          <span>เกณฑ์</span>
+          <input type="range" id="thresholdSlider" min="50" max="95" value="80" step="5" oninput="onThresholdChange(this.value)">
+          <span class="threshold-val" id="thresholdVal">80%</span>
+        </div>
+      </div>
+      <div class="alert-list" id="alertList">
+        <div class="alert-empty">โหลดข้อมูลก่อนเพื่อดูรายงาน</div>
       </div>
     </div>
 
@@ -272,7 +310,64 @@
   const GRID_COLOR='rgba(0,0,0,0.05)', TICK_COLOR='#8f96a3';
   const axisStyle={grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR,font:{family:'Sarabun',size:11}}};
 
-  function buildCharts(rows){buildCourseChart(rows);buildDonutChart(rows);buildLineChart(rows);buildHourChart(rows);}
+  function buildCharts(rows){buildCourseChart(rows);buildDonutChart(rows);buildLineChart(rows);buildHourChart(rows);buildAlertSection(rows);}
+
+  function onThresholdChange(val){
+    document.getElementById('thresholdVal').textContent=val+'%';
+    buildAlertSection(allRows.length?allRows:null);
+  }
+
+  function buildAlertSection(rows){
+    const list=document.getElementById('alertList');
+    if(!rows||rows.length===0){list.innerHTML='<div class="alert-empty">โหลดข้อมูลก่อนเพื่อดูรายงาน</div>';return;}
+    const threshold=parseInt(document.getElementById('thresholdSlider').value)/100;
+
+    // นับจำนวนวันเรียนทั้งหมด (unique dates)
+    const allDates=new Set(rows.map(r=>r.date));
+    const totalDays=allDates.size||1;
+
+    // นับจำนวนวันที่แต่ละคนเข้าเรียน
+    const studentDays={};
+    const studentNames={};
+    rows.forEach(r=>{
+      const key=r.studentId||r.name;
+      if(!studentDays[key])studentDays[key]=new Set();
+      studentDays[key].add(r.date);
+      studentNames[key]=r.name;
+    });
+
+    // คำนวณ % และเรียงลำดับ
+    const students=Object.keys(studentDays).map(key=>({
+      id:key, name:studentNames[key],
+      attended:studentDays[key].size,
+      pct:studentDays[key].size/totalDays
+    })).sort((a,b)=>a.pct-b.pct);
+
+    const atRisk=students.filter(s=>s.pct<threshold);
+
+    if(atRisk.length===0){
+      list.innerHTML='<div class="alert-empty">✅ นักเรียนทุกคนเข้าเรียนเกินเกณฑ์ที่กำหนด</div>';
+      return;
+    }
+
+    list.innerHTML=atRisk.map(s=>{
+      const pctNum=Math.round(s.pct*100);
+      const cls=pctNum<60?'pct-low':pctNum<80?'pct-mid':'pct-ok';
+      const fillColor=pctNum<60?'#dc2626':pctNum<80?'#d97706':'#16a34a';
+      return `
+        <div class="alert-row">
+          <div class="alert-avatar">🎓</div>
+          <div>
+            <div class="alert-name">${s.name}</div>
+            <div class="alert-meta">เข้าเรียน ${s.attended} / ${totalDays} วัน</div>
+          </div>
+          <div class="alert-right">
+            <div class="pct-badge ${cls}">${pctNum}%</div>
+            <div class="progress-bar"><div class="progress-fill" style="width:${pctNum}%;background:${fillColor}"></div></div>
+          </div>
+        </div>`;
+    }).join('');
+  }
 
   function buildCourseChart(rows){
     const freq={};rows.forEach(r=>{freq[r.course]=(freq[r.course]||0)+1;});
