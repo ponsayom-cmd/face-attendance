@@ -2,434 +2,203 @@
 <html lang="th">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>รายงานการเข้าเรียน</title>
-  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>รายงานกราฟ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="js/api-config.js"></script>
   <style>
     :root {
-      --bg: #07090f;
-      --surface: #0d1117;
-      --surface2: #161b22;
-      --border: rgba(255,255,255,0.07);
-      --border-glow: rgba(99,102,241,0.25);
-      --text: #e6edf3;
-      --muted: #7d8590;
-      --indigo: #6366f1;
-      --cyan: #22d3ee;
-      --emerald: #10b981;
-      --amber: #f59e0b;
-      --rose: #f43f5e;
-      --violet: #8b5cf6;
+      --white:#fff; --off:#f7f8fa; --border:#e8eaed;
+      --muted:#8f96a3; --text:#111318; --sub:#5a6270;
+      --accent:#1a1a2e; --green:#16a34a; --red:#dc2626;
+      --radius:16px;
+      --c1:#6366f1; --c2:#0ea5e9; --c3:#10b981; --c4:#f59e0b; --c5:#f43f5e; --c6:#8b5cf6;
     }
+    * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+    body { font-family:'Sarabun',sans-serif; background:var(--off); color:var(--text); min-height:100dvh; }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Sarabun', sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    /* ─── GRID NOISE BACKGROUND ─── */
-    body::before {
-      content: '';
-      position: fixed; inset: 0;
-      background-image:
-        linear-gradient(rgba(99,102,241,0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(99,102,241,0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
-      pointer-events: none; z-index: 0;
-    }
-
-    /* ─── HERO GLOW ─── */
-    .glow-orb {
-      position: fixed; border-radius: 50%; filter: blur(100px);
-      opacity: 0.12; pointer-events: none; z-index: 0;
-    }
-    .glow-orb.a { width: 600px; height: 600px; background: #6366f1; top: -200px; left: -100px; }
-    .glow-orb.b { width: 400px; height: 400px; background: #22d3ee; bottom: -100px; right: -100px; }
-
-    /* ─── LAYOUT ─── */
-    .layout { display: flex; min-height: 100vh; position: relative; z-index: 1; }
-
-    /* ─── SIDEBAR ─── */
-    .sidebar {
-      width: 220px; flex-shrink: 0;
-      background: var(--surface);
-      border-right: 1px solid var(--border);
-      padding: 24px 14px;
-      display: flex; flex-direction: column; gap: 4px;
-      position: sticky; top: 0; height: 100vh; overflow: hidden;
-    }
-    .sidebar-logo {
-      display: flex; align-items: center; gap: 10px;
-      padding: 0 10px 20px; margin-bottom: 6px;
-      border-bottom: 1px solid var(--border);
-    }
-    .sidebar-logo span { font-size: 22px; }
-    .sidebar-logo strong { font-size: 0.9em; color: var(--text); font-weight: 700; line-height: 1.3; }
-    .sidebar-logo small { display: block; font-size: 0.68em; color: var(--muted); }
-
-    .nav-item {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 12px; border-radius: 10px;
-      font-size: 0.88em; color: var(--muted); cursor: pointer;
-      transition: all 0.2s ease; text-decoration: none;
-      border: 1px solid transparent;
-    }
-    .nav-item:hover { color: var(--text); background: rgba(255,255,255,0.04); }
-    .nav-item.active {
-      color: #a5b4fc; background: rgba(99,102,241,0.12);
-      border-color: rgba(99,102,241,0.2);
-    }
-    .nav-icon { font-size: 16px; width: 20px; text-align: center; }
-    .nav-spacer { flex: 1; }
-    .nav-back { color: var(--rose); font-size: 0.85em; }
-    .nav-back:hover { background: rgba(244,63,94,0.08); color: #fda4af; }
-
-    /* ─── MAIN CONTENT ─── */
-    .main { flex: 1; padding: 32px 28px; overflow-y: auto; }
-
-    /* ─── TOPBAR ─── */
+    /* ── TOPBAR ── */
     .topbar {
-      display: flex; align-items: flex-start;
-      justify-content: space-between; margin-bottom: 28px;
-      gap: 16px; flex-wrap: wrap;
+      background:var(--white); border-bottom:1px solid var(--border);
+      display:flex; align-items:center; gap:12px;
+      padding:calc(env(safe-area-inset-top,0px)+14px) 20px 14px;
+      position:sticky; top:0; z-index:20;
     }
-    .topbar-left h1 {
-      font-size: 1.6em; font-weight: 700;
-      background: linear-gradient(135deg, #a5b4fc 0%, #e2e8f0 60%);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text; margin-bottom: 4px;
-    }
-    .topbar-left p { font-size: 0.83em; color: var(--muted); }
-    .filter-row {
-      display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
-    }
-    .filter-select, .filter-date {
-      padding: 9px 14px;
-      background: var(--surface2); border: 1px solid var(--border);
-      border-radius: 10px; color: var(--text); font-family: 'Sarabun', sans-serif;
-      font-size: 0.85em; outline: none; cursor: pointer;
-      transition: all 0.2s;
-    }
-    .filter-select:focus, .filter-date:focus { border-color: var(--border-glow); }
-    .filter-select option { background: #1c2128; }
-    .filter-date::-webkit-calendar-picker-indicator { filter: invert(0.5); }
-    .btn-load {
-      padding: 9px 20px; background: linear-gradient(135deg, #6366f1, #4f46e5);
-      color: white; border: none; border-radius: 10px; font-size: 0.85em;
-      font-weight: 700; font-family: 'Sarabun', sans-serif;
-      cursor: pointer; transition: all 0.25s;
-      box-shadow: 0 2px 12px rgba(99,102,241,0.35);
-    }
-    .btn-load:hover { box-shadow: 0 4px 20px rgba(99,102,241,0.55); transform: translateY(-1px); }
+    .back-btn { width:36px; height:36px; border-radius:10px; background:var(--off); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; text-decoration:none; color:var(--text); font-size:18px; flex-shrink:0; }
+    .topbar-title { font-size:1rem; font-weight:600; flex:1; }
+    .topbar-sub { font-family:'IBM Plex Mono',monospace; font-size:.65rem; color:var(--muted); margin-top:1px; }
 
-    /* ─── KPI CARDS ─── */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 14px; margin-bottom: 24px;
+    /* ── FILTER BAR ── */
+    .filter-bar {
+      background:var(--white); border-bottom:1px solid var(--border);
+      padding:12px 20px; display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;
     }
-    .kpi-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px; padding: 18px 20px;
-      position: relative; overflow: hidden;
-      transition: border-color 0.3s, transform 0.2s;
-      animation: fadeUp 0.5s ease both;
-    }
-    .kpi-card:nth-child(1) { animation-delay: 0.05s; }
-    .kpi-card:nth-child(2) { animation-delay: 0.10s; }
-    .kpi-card:nth-child(3) { animation-delay: 0.15s; }
-    .kpi-card:nth-child(4) { animation-delay: 0.20s; }
-    .kpi-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.14); }
-    .kpi-card::before {
-      content: ''; position: absolute;
-      top: 0; left: 0; right: 0; height: 2px;
-      border-radius: 14px 14px 0 0;
-    }
-    .kpi-card.indigo::before { background: var(--indigo); }
-    .kpi-card.cyan::before   { background: var(--cyan); }
-    .kpi-card.emerald::before{ background: var(--emerald); }
-    .kpi-card.amber::before  { background: var(--amber); }
+    .filter-group { display:flex; flex-direction:column; gap:4px; flex:1; min-width:140px; }
+    .field-label { font-size:.68rem; font-weight:600; color:var(--muted); letter-spacing:.07em; text-transform:uppercase; }
+    select, input[type="date"] { padding:9px 12px; background:var(--off); border:1px solid var(--border); border-radius:10px; font-size:14px; font-family:'Sarabun',sans-serif; color:var(--text); outline:none; appearance:none; width:100%; transition:border-color .2s; }
+    select:focus, input[type="date"]:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(26,26,46,.07); }
+    input[type="date"]::-webkit-calendar-picker-indicator { opacity:.4; }
+    .btn-load { padding:9px 20px; background:var(--accent); color:var(--white); border:none; border-radius:10px; font-size:.875rem; font-weight:600; font-family:'Sarabun',sans-serif; cursor:pointer; white-space:nowrap; height:38px; transition:opacity .2s; }
+    .btn-load:active { opacity:.8; }
+    .btn-export { padding:9px 16px; background:#f0fdf4; color:#15803d; border:1px solid #bbf7d0; border-radius:10px; font-size:.875rem; font-weight:600; font-family:'Sarabun',sans-serif; cursor:pointer; white-space:nowrap; height:38px; }
 
-    .kpi-label { font-size: 0.75em; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
-    .kpi-value {
-      font-family: 'Space Mono', monospace;
-      font-size: 2em; font-weight: 700; line-height: 1;
-      margin-bottom: 6px;
-    }
-    .kpi-card.indigo .kpi-value { color: #a5b4fc; }
-    .kpi-card.cyan   .kpi-value { color: #67e8f9; }
-    .kpi-card.emerald .kpi-value { color: #6ee7b7; }
-    .kpi-card.amber  .kpi-value { color: #fcd34d; }
-    .kpi-sub { font-size: 0.75em; color: var(--muted); }
+    /* ── LAYOUT ── */
+    .page { max-width:1100px; margin:0 auto; padding:20px; display:flex; flex-direction:column; gap:16px; }
 
-    /* ─── CHART GRID ─── */
-    .chart-row { display: grid; grid-template-columns: 3fr 2fr; gap: 14px; margin-bottom: 24px; }
-    .chart-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px; }
-    .chart-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px; padding: 20px 22px;
-      animation: fadeUp 0.5s ease both;
-    }
-    .chart-card:nth-child(1) { animation-delay: 0.25s; }
-    .chart-card:nth-child(2) { animation-delay: 0.35s; }
+    /* ── KPI ── */
+    .kpi-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+    .kpi-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius); padding:18px 16px; position:relative; overflow:hidden; }
+    .kpi-card::after { content:''; position:absolute; top:0; left:0; right:0; height:3px; border-radius:var(--radius) var(--radius) 0 0; }
+    .kpi-c1::after { background:var(--c1); } .kpi-c2::after { background:var(--c2); }
+    .kpi-c3::after { background:var(--c3); } .kpi-c4::after { background:var(--c4); }
+    .kpi-label { font-size:.72rem; font-weight:600; color:var(--muted); letter-spacing:.07em; text-transform:uppercase; margin-bottom:10px; }
+    .kpi-value { font-family:'IBM Plex Mono',monospace; font-size:2rem; font-weight:700; color:var(--text); line-height:1; margin-bottom:4px; }
+    .kpi-sub { font-size:.75rem; color:var(--muted); }
 
-    .chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .chart-title { font-size: 0.9em; font-weight: 700; color: var(--text); }
-    .chart-badge { font-size: 0.72em; color: #a5b4fc; background: rgba(99,102,241,0.15); padding: 3px 10px; border-radius: 20px; border: 1px solid rgba(99,102,241,0.25); }
-    .chart-canvas-wrap { position: relative; }
+    /* ── CHART GRID ── */
+    .chart-row-2 { display:grid; grid-template-columns:3fr 2fr; gap:16px; }
+    .chart-row-3 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    .chart-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+    .chart-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .chart-title { font-size:.9rem; font-weight:600; color:var(--text); }
+    .chart-badge { font-size:.7rem; color:var(--sub); background:var(--off); border:1px solid var(--border); padding:3px 10px; border-radius:20px; font-family:'IBM Plex Mono',monospace; }
 
-    /* ─── TABLE ─── */
-    .table-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px; overflow: hidden;
-      animation: fadeUp 0.5s ease 0.45s both;
-      margin-bottom: 24px;
-    }
-    .table-head {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 16px 20px; border-bottom: 1px solid var(--border);
-    }
-    .search-box {
-      padding: 7px 14px; background: var(--surface2);
-      border: 1px solid var(--border); border-radius: 8px;
-      color: var(--text); font-family: 'Sarabun', sans-serif; font-size: 0.83em;
-      outline: none; width: 200px; transition: border-color 0.2s;
-    }
-    .search-box:focus { border-color: var(--border-glow); }
-    .search-box::placeholder { color: var(--muted); }
+    /* ── TABLE ── */
+    .table-card { background:var(--white); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+    .table-head { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; border-bottom:1px solid var(--border); gap:12px; }
+    .table-head-title { font-size:.9rem; font-weight:600; }
+    .search-input { padding:8px 12px; background:var(--off); border:1px solid var(--border); border-radius:9px; font-size:.85rem; font-family:'Sarabun',sans-serif; color:var(--text); outline:none; width:180px; transition:border-color .2s; }
+    .search-input:focus { border-color:var(--accent); }
+    .search-input::placeholder { color:var(--muted); }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; font-size:.85rem; min-width:560px; }
+    thead th { padding:9px 14px; text-align:left; color:var(--muted); font-size:.68rem; font-weight:600; letter-spacing:.07em; text-transform:uppercase; border-bottom:1px solid var(--border); background:var(--off); }
+    tbody tr { border-bottom:1px solid var(--border); transition:background .12s; }
+    tbody tr:last-child { border-bottom:none; }
+    tbody tr:hover { background:var(--off); }
+    tbody td { padding:10px 14px; color:var(--sub); vertical-align:middle; }
+    .td-name { font-weight:600; color:var(--text); }
+    .td-id   { font-family:'IBM Plex Mono',monospace; font-size:.78rem; color:var(--muted); }
+    .td-time { font-family:'IBM Plex Mono',monospace; font-size:.78rem; color:var(--green); }
+    .td-course { font-size:.82rem; }
+    .map-btn { display:inline-flex; align-items:center; gap:4px; font-size:.75rem; color:var(--accent); text-decoration:none; padding:3px 10px; border-radius:7px; border:1px solid var(--border); background:var(--off); transition:background .15s; }
+    .map-btn:hover { background:var(--border); }
+    .pagination { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-top:1px solid var(--border); }
+    .page-info { font-size:.78rem; color:var(--muted); font-family:'IBM Plex Mono',monospace; }
+    .page-btns { display:flex; gap:6px; }
+    .page-btn { padding:6px 14px; border-radius:8px; font-size:.8rem; cursor:pointer; background:var(--off); border:1px solid var(--border); color:var(--sub); font-family:'Sarabun',sans-serif; transition:all .15s; }
+    .page-btn:hover:not(:disabled) { border-color:var(--accent); color:var(--text); }
+    .page-btn:disabled { opacity:.3; cursor:not-allowed; }
 
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.86em; }
-    thead th {
-      padding: 10px 16px; text-align: left;
-      color: var(--muted); font-size: 0.78em; font-weight: 700;
-      letter-spacing: 0.06em; text-transform: uppercase;
-      background: var(--surface2); border-bottom: 1px solid var(--border);
-    }
-    tbody tr { border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.15s; }
-    tbody tr:hover { background: rgba(255,255,255,0.03); }
-    tbody tr:last-child { border-bottom: none; }
-    tbody td { padding: 11px 16px; vertical-align: middle; color: #cbd5e1; }
-    .td-name { font-weight: 600; color: var(--text); }
-    .td-id { font-family: 'Space Mono', monospace; font-size: 0.8em; color: var(--muted); }
-    .td-course { color: #a5b4fc; }
-    .td-time { color: var(--emerald); font-family: 'Space Mono', monospace; font-size: 0.82em; }
-    .td-date { color: var(--muted); font-size: 0.85em; }
-    .tag-map {
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: 0.77em; color: #60a5fa; text-decoration: none;
-      padding: 3px 10px; border-radius: 6px;
-      border: 1px solid rgba(96,165,250,0.2);
-      transition: all 0.2s;
-    }
-    .tag-map:hover { background: rgba(96,165,250,0.1); border-color: rgba(96,165,250,0.45); }
+    /* ── STATE ── */
+    .state-box { padding:48px 20px; text-align:center; color:var(--muted); }
+    .state-icon { font-size:32px; margin-bottom:10px; }
+    .state-text { font-size:.875rem; }
 
-    /* ─── EMPTY / LOADING ─── */
-    .state-box {
-      padding: 48px; text-align: center; color: var(--muted);
-    }
-    .state-icon { font-size: 36px; margin-bottom: 10px; }
-    .state-text { font-size: 0.88em; }
+    /* ── LAST UPDATE ── */
+    .last-update { font-family:'IBM Plex Mono',monospace; font-size:.68rem; color:var(--muted); text-align:right; }
 
-    /* ─── HEATMAP ─── */
-    .heatmap-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
-    .hm-cell {
-      aspect-ratio: 1; border-radius: 4px;
-      background: rgba(99,102,241,0.06);
-      border: 1px solid rgba(99,102,241,0.1);
-      transition: all 0.2s; cursor: default;
-      position: relative;
+    /* ── RESPONSIVE ── */
+    @media (max-width:768px) {
+      .kpi-row { grid-template-columns:repeat(2,1fr); }
+      .chart-row-2, .chart-row-3 { grid-template-columns:1fr; }
+      .filter-bar { padding:12px 16px; }
+      .page { padding:12px; }
     }
-    .hm-cell:hover::after {
-      content: attr(data-tip);
-      position: absolute; bottom: 110%; left: 50%; transform: translateX(-50%);
-      background: #1c2128; border: 1px solid var(--border);
-      color: var(--text); font-size: 11px; padding: 4px 8px;
-      border-radius: 6px; white-space: nowrap; z-index: 99;
-      pointer-events: none;
-    }
-    .hm-day-label { font-size: 10px; color: var(--muted); text-align: center; padding-bottom: 4px; }
-
-    /* ─── PAGINATION ─── */
-    .pagination { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-top: 1px solid var(--border); }
-    .page-info { font-size: 0.8em; color: var(--muted); }
-    .page-btns { display: flex; gap: 6px; }
-    .page-btn {
-      padding: 6px 14px; border-radius: 8px; font-size: 0.8em; cursor: pointer;
-      background: var(--surface2); border: 1px solid var(--border); color: var(--muted);
-      transition: all 0.2s; font-family: 'Sarabun', sans-serif;
-    }
-    .page-btn:hover, .page-btn.active { color: var(--text); border-color: rgba(99,102,241,0.4); background: rgba(99,102,241,0.1); }
-    .page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
-    /* ─── ANIMATIONS ─── */
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(16px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes shimmer {
-      0%   { background-position: -200% center; }
-      100% { background-position: 200% center; }
-    }
-
-    /* ─── RESPONSIVE ─── */
-    @media (max-width: 900px) {
-      .sidebar { width: 56px; padding: 16px 8px; }
-      .sidebar-logo strong, .sidebar-logo small, .nav-item span { display: none; }
-      .sidebar-logo { padding: 0 0 16px; justify-content: center; }
-      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-      .chart-row, .chart-row-2 { grid-template-columns: 1fr; }
-    }
-    @media (max-width: 600px) {
-      .main { padding: 20px 14px; }
-      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
-      .filter-row { flex-direction: column; align-items: stretch; }
-      .btn-load { text-align: center; }
+    @media (max-width:480px) {
+      .kpi-row { grid-template-columns:repeat(2,1fr); }
     }
   </style>
 </head>
 <body>
-<div class="glow-orb a"></div>
-<div class="glow-orb b"></div>
 
-<div class="layout">
-
-  <!-- ─── SIDEBAR ─── -->
-  <nav class="sidebar">
-    <div class="sidebar-logo">
-      <span>🎓</span>
-      <div><strong>FaceScan</strong><small>Attendance</small></div>
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <a href="index.html" class="back-btn">‹</a>
+    <div style="flex:1">
+      <div class="topbar-title">รายงานกราฟ</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:.65rem;color:var(--muted);margin-top:1px;">ANALYTICS DASHBOARD</div>
     </div>
-    <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span>หน้าหลัก</span></a>
-    <a href="report.html" class="nav-item active"><span class="nav-icon">📊</span><span>รายงาน</span></a>
-    <a href="dashboard.html" class="nav-item"><span class="nav-icon">📋</span><span>ตารางข้อมูล</span></a>
-    <a href="admin.html" class="nav-item"><span class="nav-icon">⚙️</span><span>Admin</span></a>
-    <div class="nav-spacer"></div>
-    <a href="scan.html" class="nav-item" style="color:var(--emerald);border-color:rgba(16,185,129,0.2);background:rgba(16,185,129,0.07);">
-      <span class="nav-icon">📷</span><span>เช็คชื่อ</span>
-    </a>
-    <a href="config.html" class="nav-item nav-back"><span class="nav-icon">🔧</span><span>ตั้งค่า</span></a>
-  </nav>
+    <button class="btn-export" onclick="exportCSV()">⬇ CSV</button>
+  </div>
 
-  <!-- ─── MAIN ─── -->
-  <main class="main">
-
-    <!-- TOP BAR -->
-    <div class="topbar">
-      <div class="topbar-left">
-        <h1>📊 รายงานการเข้าเรียน</h1>
-        <p id="lastUpdate">โหลดข้อมูลจาก Google Sheets · Real-time</p>
-      </div>
-      <div class="filter-row">
-        <select class="filter-select" id="filterCourse"><option value="">ทุกวิชา</option></select>
-        <input type="date" class="filter-date" id="filterDate">
-        <button class="btn-load" onclick="loadAll()">🔄 โหลดข้อมูล</button>
-        <button class="btn-load" onclick="exportCSV()" style="background:linear-gradient(135deg,#10b981,#059669);box-shadow:0 2px 12px rgba(16,185,129,0.35);">⬇️ Export CSV</button>
-      </div>
+  <!-- FILTER -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <div class="field-label">วิชา</div>
+      <select id="filterCourse"><option value="">— ทุกวิชา —</option></select>
     </div>
+    <div class="filter-group">
+      <div class="field-label">วันที่</div>
+      <input type="date" id="filterDate">
+    </div>
+    <button class="btn-load" onclick="loadAll()">โหลดข้อมูล</button>
+  </div>
 
-    <!-- KPI CARDS -->
-    <div class="kpi-grid">
-      <div class="kpi-card indigo">
-        <div class="kpi-label">เช็คชื่อรวม</div>
-        <div class="kpi-value" id="kpi-total">—</div>
-        <div class="kpi-sub">ครั้ง</div>
-      </div>
-      <div class="kpi-card cyan">
-        <div class="kpi-label">นักเรียน (ไม่ซ้ำ)</div>
-        <div class="kpi-value" id="kpi-students">—</div>
-        <div class="kpi-sub">คน</div>
-      </div>
-      <div class="kpi-card emerald">
-        <div class="kpi-label">วิชาทั้งหมด</div>
-        <div class="kpi-value" id="kpi-courses">—</div>
-        <div class="kpi-sub">วิชา</div>
-      </div>
-      <div class="kpi-card amber">
-        <div class="kpi-label">เฉลี่ย / วัน</div>
-        <div class="kpi-value" id="kpi-avg">—</div>
-        <div class="kpi-sub">ครั้ง</div>
-      </div>
+  <div class="page">
+
+    <!-- KPI -->
+    <div class="kpi-row">
+      <div class="kpi-card kpi-c1"><div class="kpi-label">เช็คชื่อรวม</div><div class="kpi-value" id="kpi-total">—</div><div class="kpi-sub">ครั้ง</div></div>
+      <div class="kpi-card kpi-c2"><div class="kpi-label">นักเรียน</div><div class="kpi-value" id="kpi-students">—</div><div class="kpi-sub">คน (ไม่ซ้ำ)</div></div>
+      <div class="kpi-card kpi-c3"><div class="kpi-label">วิชาทั้งหมด</div><div class="kpi-value" id="kpi-courses">—</div><div class="kpi-sub">วิชา</div></div>
+      <div class="kpi-card kpi-c4"><div class="kpi-label">เฉลี่ย / วัน</div><div class="kpi-value" id="kpi-avg">—</div><div class="kpi-sub">ครั้ง</div></div>
     </div>
 
     <!-- CHARTS ROW 1 -->
-    <div class="chart-row">
-      <!-- Bar chart: by course -->
+    <div class="chart-row-2">
       <div class="chart-card">
-        <div class="chart-header">
+        <div class="chart-head">
           <span class="chart-title">การเข้าเรียนรายวิชา</span>
           <span class="chart-badge" id="badge-course">—</span>
         </div>
-        <div class="chart-canvas-wrap">
-          <canvas id="chartCourse" height="200"></canvas>
-        </div>
+        <canvas id="chartCourse" height="200"></canvas>
       </div>
-      <!-- Donut: distribution -->
       <div class="chart-card">
-        <div class="chart-header">
+        <div class="chart-head">
           <span class="chart-title">สัดส่วนแต่ละวิชา</span>
         </div>
-        <div class="chart-canvas-wrap" style="max-width:260px; margin:auto;">
+        <div style="max-width:240px;margin:auto">
           <canvas id="chartDonut" height="200"></canvas>
         </div>
       </div>
     </div>
 
     <!-- CHARTS ROW 2 -->
-    <div class="chart-row-2">
-      <!-- Line: trend over time -->
+    <div class="chart-row-3">
       <div class="chart-card">
-        <div class="chart-header">
+        <div class="chart-head">
           <span class="chart-title">แนวโน้มรายวัน</span>
-          <span class="chart-badge" id="badge-trend">7 วันล่าสุด</span>
+          <span class="chart-badge" id="badge-trend">—</span>
         </div>
         <canvas id="chartLine" height="180"></canvas>
       </div>
-      <!-- Bar: by hour -->
       <div class="chart-card">
-        <div class="chart-header">
+        <div class="chart-head">
           <span class="chart-title">การเช็คชื่อตามช่วงเวลา</span>
         </div>
         <canvas id="chartHour" height="180"></canvas>
       </div>
     </div>
 
-    <!-- ATTENDANCE TABLE -->
+    <!-- TABLE -->
     <div class="table-card">
       <div class="table-head">
-        <span class="chart-title">รายการเช็คชื่อ</span>
-        <input class="search-box" id="searchBox" placeholder="🔍 ค้นหาชื่อ..." oninput="renderTable()">
+        <span class="table-head-title">รายการเช็คชื่อ</span>
+        <input class="search-input" id="searchBox" placeholder="ค้นหาชื่อ..." oninput="renderTable()">
       </div>
       <div class="table-wrap">
         <table>
-          <thead>
-            <tr>
-              <th>รหัสนักศึกษา</th>
-              <th>ชื่อ-นามสกุล</th>
-              <th>วิชา</th>
-              <th>วันที่</th>
-              <th>เวลา</th>
-              <th>ตำแหน่ง</th>
-            </tr>
-          </thead>
+          <thead><tr><th>รหัส</th><th>ชื่อ-นามสกุล</th><th>วิชา</th><th>วันที่</th><th>เวลา</th><th>แผนที่</th></tr></thead>
           <tbody id="tableBody"></tbody>
         </table>
         <div class="state-box" id="stateBox">
           <div class="state-icon">📡</div>
-          <div class="state-text">กด "โหลดข้อมูล" เพื่อดึงข้อมูลจาก Google Sheets</div>
+          <div class="state-text">กด "โหลดข้อมูล" เพื่อดึงข้อมูล</div>
         </div>
       </div>
-      <div class="pagination" id="paginationBar" style="display:none;">
+      <div class="pagination" id="paginationBar" style="display:none">
         <span class="page-info" id="pageInfo"></span>
         <div class="page-btns">
           <button class="page-btn" id="btnPrev" onclick="changePage(-1)">← ก่อน</button>
@@ -438,335 +207,138 @@
       </div>
     </div>
 
-  </main>
-</div>
+    <div class="last-update" id="lastUpdate"></div>
+  </div>
 
 <script>
-  /* ──────── CONFIG ──────── */
   const API_URL = localStorage.getItem('gasApiUrl') || (typeof GAS_API_URL !== 'undefined' ? GAS_API_URL : '');
-  const COLORS  = ['#6366f1','#22d3ee','#10b981','#f59e0b','#f43f5e','#8b5cf6','#0ea5e9','#84cc16'];
+  const COLORS  = ['#6366f1','#0ea5e9','#10b981','#f59e0b','#f43f5e','#8b5cf6','#06b6d4','#84cc16'];
 
-  /* ──────── STATE ──────── */
-  let allRows  = [];
-  let filtered = [];
-  let page     = 0;
-  const PER_PAGE = 15;
+  let allRows=[], filtered=[], page=0;
+  const PER_PAGE=15;
+  let chartCourse,chartDonut,chartLine,chartHour;
 
-  let chartCourse, chartDonut, chartLine, chartHour;
+  // Chart.js defaults — clean minimal style
+  Chart.defaults.font.family = 'Sarabun';
+  Chart.defaults.color = '#8f96a3';
+  Chart.defaults.plugins.legend.labels.color = '#5a6270';
 
-  /* ──────── GAS HELPERS ──────── */
-  async function gasGet(url) {
-    const res  = await fetch(url, { redirect: 'follow' });
-    const text = await res.text();
-    try { return JSON.parse(text); }
-    catch(e) { throw new Error('GAS response: ' + text.substring(0, 120)); }
-  }
+  async function gasGet(url){const r=await fetch(url,{redirect:'follow'});const t=await r.text();try{return JSON.parse(t);}catch(e){throw new Error(t.substring(0,100));}}
 
-  /* ──────── INIT ──────── */
-  (function init() {
-    const n = new Date();
-    const today = n.getFullYear() + '-' + String(n.getMonth()+1).padStart(2,'0') + '-' + String(n.getDate()).padStart(2,'0');
-    document.getElementById('filterDate').value = today;
-
-    if (!API_URL) {
-      document.getElementById('stateBox').innerHTML =
-        '<div class="state-icon">⚠️</div><div class="state-text">ยังไม่ได้ตั้งค่า API — <a href="config.html" style="color:#fbbf24;">ไปตั้งค่า</a></div>';
-      return;
-    }
-    loadCourseOptions();
-    loadAll();
+  (function init(){
+    const n=new Date();
+    document.getElementById('filterDate').value=n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');
+    if(!API_URL){document.getElementById('stateBox').innerHTML='<div class="state-icon">⚠️</div><div class="state-text">ยังไม่ได้ตั้งค่า API — <a href="config.html" style="color:var(--accent)">ไปตั้งค่า</a></div>';return;}
+    loadCourseOptions(); loadAll();
   })();
 
-  async function loadCourseOptions() {
-    try {
-      const courses = await gasGet(API_URL + '?action=getCourses');
-      const sel = document.getElementById('filterCourse');
-      courses.forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = opt.textContent = c;
-        sel.appendChild(opt);
-      });
-    } catch(e) {}
+  async function loadCourseOptions(){try{const c=await gasGet(API_URL+'?action=getCourses');const s=document.getElementById('filterCourse');c.forEach(x=>{const o=document.createElement('option');o.value=o.textContent=x;s.appendChild(o);});}catch(e){}}
+
+  async function loadAll(){
+    if(!API_URL)return;
+    document.getElementById('stateBox').innerHTML='<div class="state-icon">⏳</div><div class="state-text">กำลังโหลด...</div>';
+    document.getElementById('stateBox').style.display='block';
+    document.querySelector('.table-wrap table').style.display='none';
+    document.getElementById('paginationBar').style.display='none';
+    try{
+      const course=document.getElementById('filterCourse').value;
+      const rawDate=document.getElementById('filterDate').value;
+      let dateParam='';
+      if(rawDate){const[y,m,d]=rawDate.split('-');dateParam=parseInt(d)+'/'+parseInt(m)+'/'+y;}
+      let url=API_URL+'?action=getAttendance';
+      if(course) url+='&course='+encodeURIComponent(course);
+      if(dateParam) url+='&date='+encodeURIComponent(dateParam);
+      const allUrl=API_URL+'?action=getAttendance'+(course?'&course='+encodeURIComponent(course):'');
+      const[rows,allTimeRows]=await Promise.all([gasGet(url),gasGet(allUrl)]);
+      allRows=rows; updateKPI(rows); buildCharts(allTimeRows); filtered=rows; page=0; renderTable();
+      document.getElementById('lastUpdate').textContent='อัปเดตล่าสุด: '+new Date().toLocaleString('th-TH');
+    }catch(e){document.getElementById('stateBox').innerHTML='<div class="state-icon">❌</div><div class="state-text">โหลดไม่ได้: '+e.message+'</div>';}
   }
 
-  /* ──────── LOAD ALL DATA ──────── */
-  async function loadAll() {
-    if (!API_URL) return;
-    document.getElementById('stateBox').innerHTML =
-      '<div class="state-icon">⏳</div><div class="state-text">กำลังดึงข้อมูล...</div>';
-    document.getElementById('stateBox').style.display = 'block';
-    document.querySelector('.table-wrap table').style.display = 'none';
-    document.getElementById('paginationBar').style.display = 'none';
-
-    try {
-      const course   = document.getElementById('filterCourse').value;
-      const rawDate  = document.getElementById('filterDate').value;
-      let dateParam  = '';
-      if (rawDate) {
-        const [y,m,d] = rawDate.split('-');
-        dateParam = d+'/'+m+'/'+y;
-      }
-
-      let url = API_URL + '?action=getAttendance';
-      if (course)    url += '&course=' + encodeURIComponent(course);
-      if (dateParam) url += '&date='   + encodeURIComponent(dateParam);
-
-      // Also load all-time for charts (no date filter)
-      const [rows, allTimeRows] = await Promise.all([
-        gasGet(url),
-        gasGet(API_URL + '?action=getAttendance' + (course ? '&course='+encodeURIComponent(course) : ''))
-      ]);
-
-      allRows = rows;
-      updateKPI(rows);
-      buildCharts(allTimeRows);
-      filtered = rows;
-      page = 0;
-      renderTable();
-
-      document.getElementById('lastUpdate').textContent =
-        'อัปเดตล่าสุด: ' + new Date().toLocaleString('th-TH');
-    } catch(e) {
-      document.getElementById('stateBox').innerHTML =
-        '<div class="state-icon">❌</div><div class="state-text">โหลดไม่ได้: ' + e.message + '</div>';
-    }
+  function updateKPI(rows){
+    const total=rows.length,students=new Set(rows.map(r=>r.studentId||r.name)).size;
+    const courses=new Set(rows.map(r=>r.course)).size,days=new Set(rows.map(r=>r.date)).size;
+    const avg=days>0?(total/days).toFixed(1):'—';
+    animNum('kpi-total',total);animNum('kpi-students',students);animNum('kpi-courses',courses);
+    document.getElementById('kpi-avg').textContent=avg;
   }
 
-  /* ──────── KPI ──────── */
-  function updateKPI(rows) {
-    const total    = rows.length;
-    const students = new Set(rows.map(r => r.studentId || r.name)).size;
-    const courses  = new Set(rows.map(r => r.course)).size;
-    const days     = new Set(rows.map(r => r.date)).size;
-    const avg      = days > 0 ? (total / days).toFixed(1) : '—';
-
-    animateNum('kpi-total',    total);
-    animateNum('kpi-students', students);
-    animateNum('kpi-courses',  courses);
-    document.getElementById('kpi-avg').textContent = avg;
-  }
-
-  function animateNum(id, target) {
-    const el   = document.getElementById(id);
-    const start= 0, dur = 700, t0 = performance.now();
-    function step(t) {
-      const p = Math.min((t - t0) / dur, 1);
-      el.textContent = Math.round(p * target);
-      if (p < 1) requestAnimationFrame(step);
-    }
+  function animNum(id,target){
+    const el=document.getElementById(id);const t0=performance.now();
+    const step=t=>{const p=Math.min((t-t0)/600,1);el.textContent=Math.round(p*target);if(p<1)requestAnimationFrame(step);};
     requestAnimationFrame(step);
   }
 
-  /* ──────── CHARTS ──────── */
-  function buildCharts(rows) {
-    buildCourseChart(rows);
-    buildDonutChart(rows);
-    buildLineChart(rows);
-    buildHourChart(rows);
-  }
+  const GRID_COLOR='rgba(0,0,0,0.05)', TICK_COLOR='#8f96a3';
+  const axisStyle={grid:{color:GRID_COLOR},ticks:{color:TICK_COLOR,font:{family:'Sarabun',size:11}}};
 
-  function buildCourseChart(rows) {
-    const freq = {};
-    rows.forEach(r => { freq[r.course] = (freq[r.course]||0) + 1; });
-    const labels = Object.keys(freq);
-    const data   = Object.values(freq);
-    document.getElementById('badge-course').textContent = labels.length + ' วิชา';
+  function buildCharts(rows){buildCourseChart(rows);buildDonutChart(rows);buildLineChart(rows);buildHourChart(rows);}
 
-    if (chartCourse) chartCourse.destroy();
-    chartCourse = new Chart(document.getElementById('chartCourse'), {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: 'จำนวนครั้ง',
-          data,
-          backgroundColor: labels.map((_,i) => COLORS[i % COLORS.length] + 'cc'),
-          borderColor:     labels.map((_,i) => COLORS[i % COLORS.length]),
-          borderWidth: 1, borderRadius: 6, borderSkipped: false
-        }]
-      },
-      options: {
-        responsive: true, plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7d8590', font: { family: 'Sarabun' } } },
-          y: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#7d8590', font: { family: 'Sarabun' } }, beginAtZero: true }
-        }
-      }
+  function buildCourseChart(rows){
+    const freq={};rows.forEach(r=>{freq[r.course]=(freq[r.course]||0)+1;});
+    const labels=Object.keys(freq),data=Object.values(freq);
+    document.getElementById('badge-course').textContent=labels.length+' วิชา';
+    if(chartCourse)chartCourse.destroy();
+    chartCourse=new Chart(document.getElementById('chartCourse'),{
+      type:'bar',data:{labels,datasets:[{label:'ครั้ง',data,backgroundColor:labels.map((_,i)=>COLORS[i%COLORS.length]+'33'),borderColor:labels.map((_,i)=>COLORS[i%COLORS.length]),borderWidth:2,borderRadius:8,borderSkipped:false}]},
+      options:{responsive:true,plugins:{legend:{display:false}},scales:{x:axisStyle,y:{...axisStyle,beginAtZero:true}}}
     });
   }
 
-  function buildDonutChart(rows) {
-    const freq = {};
-    rows.forEach(r => { freq[r.course] = (freq[r.course]||0) + 1; });
-    const labels = Object.keys(freq);
-    const data   = Object.values(freq);
-
-    if (chartDonut) chartDonut.destroy();
-    chartDonut = new Chart(document.getElementById('chartDonut'), {
-      type: 'doughnut',
-      data: {
-        labels,
-        datasets: [{
-          data,
-          backgroundColor: labels.map((_,i) => COLORS[i % COLORS.length] + 'dd'),
-          borderColor: '#0d1117', borderWidth: 3, hoverOffset: 8
-        }]
-      },
-      options: {
-        cutout: '65%',
-        plugins: {
-          legend: { position: 'bottom', labels: { color: '#7d8590', font: { family: 'Sarabun', size: 11 }, padding: 12, boxWidth: 10 } }
-        }
-      }
+  function buildDonutChart(rows){
+    const freq={};rows.forEach(r=>{freq[r.course]=(freq[r.course]||0)+1;});
+    const labels=Object.keys(freq),data=Object.values(freq);
+    if(chartDonut)chartDonut.destroy();
+    chartDonut=new Chart(document.getElementById('chartDonut'),{
+      type:'doughnut',data:{labels,datasets:[{data,backgroundColor:labels.map((_,i)=>COLORS[i%COLORS.length]),borderColor:'#ffffff',borderWidth:3,hoverOffset:6}]},
+      options:{cutout:'68%',plugins:{legend:{position:'bottom',labels:{padding:14,boxWidth:10,font:{family:'Sarabun',size:11}}}}}
     });
   }
 
-  function buildLineChart(rows) {
-    // Last 14 days trend
-    const dayCount = {};
-    rows.forEach(r => { if(r.date) dayCount[r.date] = (dayCount[r.date]||0) + 1; });
-    const sortedDays = Object.keys(dayCount).sort((a,b) => {
-      // format d/m/y → parse
-      const parseD = s => { const [d,m,y] = s.split('/'); return new Date(y,m-1,d); };
-      return parseD(a) - parseD(b);
-    }).slice(-14);
-    const labels = sortedDays;
-    const data   = sortedDays.map(d => dayCount[d]);
-
-    document.getElementById('badge-trend').textContent = sortedDays.length + ' วันล่าสุด';
-
-    if (chartLine) chartLine.destroy();
-    chartLine = new Chart(document.getElementById('chartLine'), {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [{
-          label: 'เช็คชื่อ',
-          data,
-          borderColor: '#22d3ee',
-          backgroundColor: 'rgba(34,211,238,0.08)',
-          fill: true, tension: 0.4,
-          pointBackgroundColor: '#22d3ee', pointRadius: 4,
-          pointHoverRadius: 7
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7d8590', font: { family: 'Sarabun', size: 10 }, maxRotation: 40 } },
-          y: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#7d8590', font: { family: 'Sarabun' } }, beginAtZero: true }
-        }
-      }
+  function buildLineChart(rows){
+    const dayCount={};rows.forEach(r=>{if(r.date)dayCount[r.date]=(dayCount[r.date]||0)+1;});
+    const parseD=s=>{const[d,m,y]=s.split('/');return new Date(y,m-1,d);};
+    const sorted=Object.keys(dayCount).sort((a,b)=>parseD(a)-parseD(b)).slice(-14);
+    document.getElementById('badge-trend').textContent=sorted.length+' วันล่าสุด';
+    if(chartLine)chartLine.destroy();
+    chartLine=new Chart(document.getElementById('chartLine'),{
+      type:'line',data:{labels:sorted,datasets:[{label:'เช็คชื่อ',data:sorted.map(d=>dayCount[d]),borderColor:COLORS[1],backgroundColor:COLORS[1]+'18',fill:true,tension:0.4,pointBackgroundColor:COLORS[1],pointRadius:4,pointHoverRadius:7}]},
+      options:{responsive:true,plugins:{legend:{display:false}},scales:{x:axisStyle,y:{...axisStyle,beginAtZero:true}}}
     });
   }
 
-  function buildHourChart(rows) {
-    const hourCount = Array(24).fill(0);
-    rows.forEach(r => {
-      if (r.time) {
-        const h = parseInt(r.time.split(':')[0]);
-        if (!isNaN(h)) hourCount[h]++;
-      }
-    });
-    const labels = Array.from({length:24}, (_,i) => i + ':00').filter((_,i) => hourCount[i] > 0 || (i >= 6 && i <= 20));
-    const visibleHours = Array.from({length:24}, (_,i) => i).filter(i => hourCount[i] > 0 || (i >= 6 && i <= 20));
-
-    if (chartHour) chartHour.destroy();
-    chartHour = new Chart(document.getElementById('chartHour'), {
-      type: 'bar',
-      data: {
-        labels: visibleHours.map(h => h + ':00'),
-        datasets: [{
-          label: 'เช็คชื่อ',
-          data: visibleHours.map(h => hourCount[h]),
-          backgroundColor: visibleHours.map(h => {
-            if (h < 9) return '#8b5cf6cc';
-            if (h < 12) return '#6366f1cc';
-            if (h < 14) return '#22d3eecc';
-            if (h < 17) return '#10b981cc';
-            return '#f59e0bcc';
-          }),
-          borderRadius: 5, borderSkipped: false
-        }]
-      },
-      options: {
-        responsive: true, plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#7d8590', font: { family: 'Sarabun', size: 10 } } },
-          y: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#7d8590', font: { family: 'Sarabun' } }, beginAtZero: true }
-        }
-      }
+  function buildHourChart(rows){
+    const hourCount=Array(24).fill(0);rows.forEach(r=>{if(r.time){const h=parseInt(r.time.split(':')[0]);if(!isNaN(h))hourCount[h]++;}});
+    const vis=Array.from({length:24},(_,i)=>i).filter(i=>hourCount[i]>0||(i>=6&&i<=20));
+    if(chartHour)chartHour.destroy();
+    chartHour=new Chart(document.getElementById('chartHour'),{
+      type:'bar',data:{labels:vis.map(h=>h+':00'),datasets:[{label:'เช็คชื่อ',data:vis.map(h=>hourCount[h]),backgroundColor:vis.map((_,idx)=>COLORS[idx%COLORS.length]+'44'),borderColor:vis.map((_,idx)=>COLORS[idx%COLORS.length]),borderWidth:2,borderRadius:6,borderSkipped:false}]},
+      options:{responsive:true,plugins:{legend:{display:false}},scales:{x:axisStyle,y:{...axisStyle,beginAtZero:true}}}
     });
   }
 
-  /* ──────── TABLE ──────── */
-  function renderTable() {
-    const q = document.getElementById('searchBox').value.toLowerCase();
-    filtered = allRows.filter(r =>
-      (!q || (r.name||'').toLowerCase().includes(q) || (r.studentId||'').toLowerCase().includes(q) || (r.course||'').toLowerCase().includes(q))
-    );
-
-    const total = filtered.length;
-    const start = page * PER_PAGE;
-    const slice = filtered.slice(start, start + PER_PAGE);
-
-    const tbody = document.getElementById('tableBody');
-
-    if (total === 0) {
-      tbody.innerHTML = '';
-      document.querySelector('.table-wrap table').style.display = 'none';
-      document.getElementById('stateBox').innerHTML =
-        '<div class="state-icon">📭</div><div class="state-text">ไม่พบข้อมูลที่ตรงกับเงื่อนไข</div>';
-      document.getElementById('stateBox').style.display = 'block';
-      document.getElementById('paginationBar').style.display = 'none';
-      return;
-    }
-
-    document.getElementById('stateBox').style.display = 'none';
-    document.querySelector('.table-wrap table').style.display = '';
-
-    tbody.innerHTML = slice.map(r => `
-      <tr>
-        <td class="td-id">${r.studentId || '—'}</td>
-        <td class="td-name">${r.name || '—'}</td>
-        <td class="td-course">${r.course || '—'}</td>
-        <td class="td-date">${r.date || '—'}</td>
-        <td class="td-time">${r.time || '—'}</td>
-        <td>${r.mapLink ? '<a class="tag-map" href="'+r.mapLink+'" target="_blank">📍 แผนที่</a>' : '—'}</td>
-      </tr>
-    `).join('');
-
-    const pages   = Math.ceil(total / PER_PAGE);
-    const pageBar = document.getElementById('paginationBar');
-    pageBar.style.display = 'flex';
-    document.getElementById('pageInfo').textContent =
-      'แสดง ' + (start+1) + '–' + Math.min(start + PER_PAGE, total) + ' จาก ' + total + ' รายการ';
-    document.getElementById('btnPrev').disabled = page === 0;
-    document.getElementById('btnNext').disabled = page >= pages - 1;
+  function renderTable(){
+    const q=document.getElementById('searchBox').value.toLowerCase();
+    filtered=allRows.filter(r=>!q||(r.name||'').toLowerCase().includes(q)||(r.studentId||'').toLowerCase().includes(q)||(r.course||'').toLowerCase().includes(q));
+    const total=filtered.length,start=page*PER_PAGE,slice=filtered.slice(start,start+PER_PAGE);
+    const tbody=document.getElementById('tableBody');
+    if(total===0){tbody.innerHTML='';document.querySelector('.table-wrap table').style.display='none';document.getElementById('stateBox').innerHTML='<div class="state-icon">📭</div><div class="state-text">ไม่พบข้อมูล</div>';document.getElementById('stateBox').style.display='block';document.getElementById('paginationBar').style.display='none';return;}
+    document.getElementById('stateBox').style.display='none';document.querySelector('.table-wrap table').style.display='';
+    tbody.innerHTML=slice.map(r=>`<tr><td class="td-id">${r.studentId||'—'}</td><td class="td-name">${r.name||'—'}</td><td class="td-course">${r.course||'—'}</td><td class="td-id">${r.date||'—'}</td><td class="td-time">${r.time||'—'}</td><td>${r.mapLink?'<a class="map-btn" href="'+r.mapLink+'" target="_blank">📍 แผนที่</a>':'—'}</td></tr>`).join('');
+    const pages=Math.ceil(total/PER_PAGE),bar=document.getElementById('paginationBar');bar.style.display='flex';
+    document.getElementById('pageInfo').textContent=(start+1)+'–'+Math.min(start+PER_PAGE,total)+' / '+total;
+    document.getElementById('btnPrev').disabled=page===0;document.getElementById('btnNext').disabled=page>=pages-1;
   }
 
-  function changePage(dir) {
-    page = Math.max(0, Math.min(page + dir, Math.ceil(filtered.length / PER_PAGE) - 1));
-    renderTable();
-    document.querySelector('.table-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
+  function changePage(dir){page=Math.max(0,Math.min(page+dir,Math.ceil(filtered.length/PER_PAGE)-1));renderTable();document.querySelector('.table-card').scrollIntoView({behavior:'smooth',block:'start'});}
 
-  /* ──────── EXPORT CSV ──────── */
-  function exportCSV() {
-    if (!allRows || allRows.length === 0) { alert('ไม่มีข้อมูลสำหรับ Export'); return; }
-    const headers = ['รหัสนักศึกษา', 'ชื่อ-นามสกุล', 'วิชา', 'วันที่', 'เวลา', 'Latitude', 'Longitude', 'Google Map'];
-    const rows = allRows.map(r => [
-      r.studentId || '', r.name || '', r.course || '',
-      r.date || '', r.time || '', r.lat || '', r.lng || '', r.mapLink || ''
-    ].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','));
-    const csv  = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    const date = new Date().toLocaleDateString('th-TH').replace(/\//g,'-');
-    a.href = url; a.download = 'attendance_' + date + '.csv';
-    a.click(); URL.revokeObjectURL(url);
+  function exportCSV(){
+    if(!allRows.length){alert('กรุณาโหลดข้อมูลก่อน');return;}
+    const h=['รหัสนักศึกษา','ชื่อ-นามสกุล','วิชา','วันที่','เวลา','Latitude','Longitude','Google Map'];
+    const rows=allRows.map(r=>[r.studentId||'',r.name||'',r.course||'',r.date||'',r.time||'',r.lat||'',r.lng||'',r.mapLink||''].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(','));
+    const csv='\uFEFF'+h.join(',')+'\n'+rows.join('\n');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8;'}));
+    a.download='report_'+new Date().toLocaleDateString('th-TH').replace(/\//g,'-')+'.csv';a.click();
   }
 </script>
 </body>
